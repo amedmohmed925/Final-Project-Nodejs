@@ -2,7 +2,7 @@ const User = require("../models/UserSchema");
 const Forum = require("../models/ForumSchema");
 const Notification = require("../models/NotificationSchema");
 const Activity = require("../models/ActivitySchema"); 
-const courses = require('../models/coursesSchema')
+const Course = require('../models/coursesSchema')
 const bcrypt = require("bcrypt");
 
 let getAllUsers = async (req, res) => {
@@ -11,6 +11,7 @@ let getAllUsers = async (req, res) => {
     res.status(200).json({
       success: true,
       users: allUsers,
+      
     });
   } catch (error) {
     res.status(500).json({
@@ -40,9 +41,6 @@ let getUserById = async (req, res) => {
       .json({ success: false, message: "Error fetching user", error });
   }
 };
-
-const Course = require('../models/coursesSchema');
-const User = require("../models/UserSchema");
 
 let getCoursesByUser = async (req, res) => {
   let { id } = req.params;
