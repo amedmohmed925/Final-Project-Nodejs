@@ -1,21 +1,24 @@
+//server
 const express = require("express");
-const authRoutes = require("./routes/authRoutes");
-const dotenv = require("dotenv");
-const connectDB = require("./config/db");
-const cors = require("cors");
-const swaggerDocs = require("./config/swagger");
+const feedbacksRoutes = require("./routes/feedbacksRoutes");
+const answersRoutes = require("./routes/answersRoutes");
+const { connectdb } = require("./config/connDB")
 require("dotenv").config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
 
-dotenv.config();
-connectDB();
-app.use("/auth", authRoutes);
 
-swaggerDocs(app);
+connectdb().then(() => {
+  console.log('connectdb.....')
+  app.listen(process.env.PORT, () => {
+    console.log(`Server is running on port ${process.env.PORT}`);
+  });
+}).catch((err) => {
+  console.log('error.....', err)
+})
 
-app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
 
-module.exports = app;
+app.use("/feedbacks", feedbacksRoutes);
+app.use("/answers", answersRoutes);
+
