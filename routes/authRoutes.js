@@ -1,5 +1,5 @@
 const express = require("express");
-const { register, login, refreshToken, logout, getCurrentUser } = require("../controllers/authController");
+const { register, login, verifyOTP, resendOTP,  refreshToken, logout, getCurrentUser, forgetPassword, resetPassword } = require("../controllers/authController");
 const { authenticateToken } = require("../middleware/authMiddleware");
 
 const router = express.Router();
@@ -82,6 +82,65 @@ router.post("/register", register);
  */
 router.post("/login", login);
 
+
+/**
+ * @swagger
+ * /verify-otp:
+ *   post:
+ *     summary: Verify OTP to activate account
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - otp
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Account verified successfully
+ *       400:
+ *         description: Invalid OTP or missing fields
+ *       404:
+ *         description: User not found
+ */
+router.post("/verify-otp", verifyOTP);
+
+/**
+ * @swagger
+ * /resend-otp:
+ *   post:
+ *     summary: Resend OTP to the user's email
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP resent successfully
+ *       400:
+ *         description: Invalid email or user not found
+ *       500:
+ *         description: Server error
+ */
+router.post("/resend-otp", resendOTP);
+
+
 /**
  * @swagger
  * /refresh:
@@ -149,5 +208,63 @@ router.post("/logout", authenticateToken, logout);
  *         description: Unauthorized
  */
 router.get("/me", authenticateToken, getCurrentUser);
+
+/**
+ * @swagger
+ * /forget-password:
+ *   post:
+ *     summary: Request OTP for password reset
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: 
+ *               - email
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: OTP sent to email
+ *       404:
+ *         description: User not found
+ */
+router.post("/forget-password", forgetPassword);
+
+/**
+ * @swagger
+ * /reset-password:
+ *   post:
+ *     summary: Reset user password using OTP
+ *     tags: [Authentication]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required: 
+ *               - email
+ *               - otp
+ *               - newPassword
+ *             properties:
+ *               email:
+ *                 type: string
+ *               otp:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       400:
+ *         description: Invalid OTP
+ *       404:
+ *         description: User not found
+ */
+router.post("/reset-password", resetPassword);
 
 module.exports = router;

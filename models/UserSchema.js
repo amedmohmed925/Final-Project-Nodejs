@@ -5,9 +5,11 @@ const userSchema = new mongoose.Schema({
     password: { type: String, required: true },
     firstName: { type: String, required: true },
     lastName: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
+    email: { type: String, required: true },
     dob: { type: Date, required: true },
-    role: { type: String, enum: ["teacher", "student"], required: true }
-});
+    role: { type: String, enum: ["teacher", "student", "admin"], required: true },
+    isVerified: { type: Boolean, default: false }, 
+
+}, {timestamps: true} );
 
 module.exports = mongoose.model("User", userSchema);
