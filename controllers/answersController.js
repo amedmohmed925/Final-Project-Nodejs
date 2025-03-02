@@ -24,7 +24,7 @@ const addAnswer = async (req, res) => {
   try {
     const { content, isCorrect, questionId } = req.body;
 
-    if (!content || isCorrect || !questionId) {
+    if (!content || !isCorrect || !questionId) {
       return res.json({ error: "All fields are required" });
     }
 
