@@ -2,6 +2,8 @@
 const mongoose = require("mongoose");
 
 const FeedbackSchema = new mongoose.Schema({
+  //userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  //courseId: { type: mongoose.Schema.Types.ObjectId, ref: "Course", required: true },
   userId: { type: String, ref: "User", required: true },
   courseId: { type: String, ref: "Course", required: true },
   comment: { type: String, required: true },
