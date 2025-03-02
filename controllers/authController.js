@@ -102,10 +102,11 @@ exports.login = async (req, res) => {
   exports.verifyOTP = async (req, res) => {
     try {
       const { email, otp } = req.body;
+      console.log("Received OTP request:", { email, otp }); // Log the received data
 
-      if (!email || !otp) {
-        return res.status(400).json({ message: "Please provide email and OTP." });
-      }
+    if (!email || !otp) {
+      return res.status(400).json({ message: "Please provide email and OTP." });
+    }
 
       // التحقق من صحة الـ OTP
       const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
@@ -220,7 +221,6 @@ exports.forgetPassword = async (req, res, next) => {
         return res.status(404).json({ message: 'User not found.' });
       }
   
-      // Generate OTP
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
   
       // Save OTP to the database

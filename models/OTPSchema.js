@@ -13,7 +13,7 @@ const otpSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 60 * 60, // OTP expires after 1 hour
+    expires: 60 * 60,
   },
 });
 
