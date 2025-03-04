@@ -91,7 +91,7 @@ exports.login = async (req, res) => {
       message: "Login successful", 
       accessToken, 
       refreshToken,
-      user: { email: user.email, isVerified: user.isVerified } // إرجاع بيانات المستخدم
+      user: user.toObject() // إرجاع بيانات المستخدم
     });
   } catch (error) {
     console.error(error);
