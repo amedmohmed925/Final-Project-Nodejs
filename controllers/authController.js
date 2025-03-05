@@ -1,8 +1,8 @@
-const User = require("../models/UserSchema");
+const User = require("../models/User");
 const RefreshToken = require("../models/RefreshToken");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
-const OTP = require('../models/OTPSchema');
+const OTP = require('../models/OTP');
 const mailSender = require("../utils/mailSender");
 
 const generateAccessToken = (user) => {
@@ -78,7 +78,7 @@ exports.login = async (req, res) => {
     if (!user.isVerified) {
       return res.status(401).json({ 
         message: "Account not verified. Please verify your email.",
-        user: { email: user.email } // إرجاع البريد الإلكتروني للمستخدم
+        user: { email: user.email } 
       });
     }
 
@@ -91,7 +91,7 @@ exports.login = async (req, res) => {
       message: "Login successful", 
       accessToken, 
       refreshToken,
-      user: user.toObject() // إرجاع بيانات المستخدم
+      user: user.toObject()
     });
   } catch (error) {
     console.error(error);
@@ -102,19 +102,19 @@ exports.login = async (req, res) => {
   exports.verifyOTP = async (req, res) => {
     try {
       const { email, otp } = req.body;
-      console.log("Received OTP request:", { email, otp }); // Log the received data
+      console.log("Received OTP request:", { email, otp });
 
     if (!email || !otp) {
       return res.status(400).json({ message: "Please provide email and OTP." });
     }
 
-      // التحقق من صحة الـ OTP
-      const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
+
+    const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
       if (!otpRecord) {
         return res.status(400).json({ message: "Invalid OTP." });
       }
 
-      // تفعيل الحساب
+
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: "User not found." });
@@ -123,7 +123,7 @@ exports.login = async (req, res) => {
       user.isVerified = true;
       await user.save();
 
-      // حذف الـ OTP بعد استخدامه
+
       await OTP.deleteOne({ _id: otpRecord._id });
 
       res.status(200).json({ message: "Account verified successfully. You can now login." });
@@ -140,19 +140,19 @@ exports.login = async (req, res) => {
         return res.status(400).json({ message: "Please provide your email." });
       }
   
-      // التحقق من وجود المستخدم
+
       const user = await User.findOne({ email });
       if (!user) {
         return res.status(404).json({ message: "User not found." });
       }
   
-      // إنشاء OTP جديد
+
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
   
-      // حفظ الـ OTP في قاعدة البيانات
+
       await OTP.create({ email, otp });
   
-      // إرسال الـ OTP إلى البريد الإلكتروني
+
       await mailSender(
         email,
         "Resend OTP",
@@ -223,10 +223,10 @@ exports.forgetPassword = async (req, res, next) => {
   
       const otp = Math.floor(100000 + Math.random() * 900000).toString();
   
-      // Save OTP to the database
+
       await OTP.create({ email, otp });
   
-      // Send OTP to the user's email
+
       await mailSender(
         email,
         "Password Reset OTP",
@@ -252,18 +252,18 @@ exports.forgetPassword = async (req, res, next) => {
         return res.status(404).json({ message: 'User not found.' });
       }
   
-      // Verify OTP
+
       const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
       if (!otpRecord) {
         return res.status(400).json({ message: 'Invalid OTP.' });
       }
   
-      // Update password
+
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       user.password = hashedPassword;
       await user.save();
   
-      // Delete the used OTP
+
       await OTP.deleteOne({ _id: otpRecord._id });
   
       res.status(200).json({ message: 'Password reset successfully.' });
