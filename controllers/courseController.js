@@ -21,14 +21,31 @@ exports.getCourseById = async (req, res) => {
 
 exports.addCourse = async (req, res) => {
   const { title, description, featuredImage, lessons, quizzes, resources, tags } = req.body;
+  const teacherId = req.user.id;
+
   try {
-    const newCourse = new Course({ title, description, featuredImage, lessons, quizzes, resources, tags });
+    const newCourse = new Course({ title, description, featuredImage, lessons, quizzes, resources, tags, teacherId });
     await newCourse.save();
     res.status(201).json(newCourse);
   } catch (err) {
     res.status(400).json({ message: err.message });
   }
 };
+exports.getCoursesByTeacher = async (req, res) => {
+  try {
+    const teacherId = req.params.teacherId;
+    const courses = await Course.find({ teacherId });
+    
+    if (!courses.length) {
+      return res.status(404).json({ message: "No courses found for this teacher" });
+    }
+
+    res.status(200).json(courses);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 
 exports.updateCourse = async (req, res) => {
   const { title, description, featuredImage } = req.body;

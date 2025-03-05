@@ -28,7 +28,8 @@ const courseSchema = new mongoose.Schema({
   quizzes: [quizSchema],
   resources: [resourceSchema],
   tags: [tagSchema],
+  teacherId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true }, 
   createdAt: { type: Date, default: Date.now },
 });
 
-module.exports = mongoose.model('Course', courseSchema);
+module.exports = mongoose.model("Course", courseSchema);

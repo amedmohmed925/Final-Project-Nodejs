@@ -5,11 +5,14 @@ const feedbackController = require('../controllers/feedbacksController');
 const quizController = require('../controllers/quizController');
 const groupController = require('../controllers/groupController');
 const resourceController = require('../controllers/resourceController');
+const {isTeacher} = require('../middleware/authMiddleware')
+const { authenticateToken } = require("../middleware/authMiddleware");
 
 // Course routes
 router.get('/', courseController.getAllCourses);
 router.get('/:id', courseController.getCourseById);
-router.post('/', courseController.addCourse);
+router.post('/', authenticateToken, courseController.addCourse);
+router.get("/teacher/:teacherId", authenticateToken, isTeacher , courseController.getCoursesByTeacher);
 router.put('/:id', courseController.updateCourse);
 router.delete('/:id', courseController.deleteCourse);
 
