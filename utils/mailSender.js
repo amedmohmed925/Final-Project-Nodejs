@@ -6,14 +6,14 @@ const mailSender = async (email, title, body) => {
     let transporter = nodemailer.createTransport({
       service: 'gmail', 
       auth: {
-        user: 'amedmohmed925@gmail.com',
-        pass: 'iynl bwhe cfpv fhqp',
+        user: process.env.EMAILTEST,
+        pass: process.env.APIKE,
       },
     });
 
     // إرسال البريد
     let info = await transporter.sendMail({
-      from: `"Test App" <amedmohmed925@gmail.com>`, // بريدك الإلكتروني
+      from: `"Courses " <Courses@gmail.com>`, // بريدك الإلكتروني
       to: email, // البريد المستقبل
       subject: title, // عنوان البريد
       html: body, // محتوى البريد (يمكن أن يكون HTML)
