@@ -2,22 +2,21 @@ const nodemailer = require('nodemailer');
 
 const mailSender = async (email, title, body) => {
   try {
+
     let transporter = nodemailer.createTransport({
-      host: 'smtp.ethereal.email',
-      port: 587,
+      service: 'gmail', 
       auth: {
-        user: 'fanny.smitham@ethereal.email', // استبدل بهذا إذا كنت تستخدم حساب Ethereal آخر
-        pass: 'xuzgk6sJGaJx6k7eRU', // استبدل بهذا إذا كنت تستخدم حساب Ethereal آخر
+        user: 'amedmohmed925@gmail.com',
+        pass: 'iynl bwhe cfpv fhqp',
       },
-      debug: true, // تفعيل التصحيح
-      logger: true,
     });
 
+    // إرسال البريد
     let info = await transporter.sendMail({
-      from: `"Test App" <fanny.smitham@ethereal.email>`, // استبدل بهذا إذا كنت تستخدم حساب Ethereal آخر
-      to: email,
-      subject: title,
-      html: body,
+      from: `"Test App" <amedmohmed925@gmail.com>`, // بريدك الإلكتروني
+      to: email, // البريد المستقبل
+      subject: title, // عنوان البريد
+      html: body, // محتوى البريد (يمكن أن يكون HTML)
     });
 
     console.log("Email sent successfully:", info);

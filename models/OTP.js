@@ -5,6 +5,7 @@ const otpSchema = new mongoose.Schema({
   email: {
     type: String,
     required: true,
+    index: true, // إضافة فهرس لتسريع البحث
   },
   otp: {
     type: String,
@@ -13,12 +14,18 @@ const otpSchema = new mongoose.Schema({
   createdAt: {
     type: Date,
     default: Date.now,
-    expires: 60 * 60,
+    expires: 60 * 5, // انتهاء الصلاحية بعد 5 دقائق
   },
 });
 
 async function sendVerificationEmail(email, otp) {
   try {
+    // تحقق بسيط من صحة البريد الإلكتروني
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      throw new Error("Invalid email format.");
+    }
+
     const mailResponse = await mailSender(
       email,
       "Verification Email",
