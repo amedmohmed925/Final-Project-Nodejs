@@ -5,6 +5,11 @@ const questionRoutes = require('./routes/questionRoutes');
 const userRoutes = require('./routes/usersRoutes')
 const feedbacksRoutes = require("./routes/feedbacksRoutes");
 const answersRoutes = require("./routes/answersRoutes");
+const forumRoutes = require("./routes/forumRoutes");
+const groupRoutes = require("./routes/groupRoutes");
+const quizRoutes = require("./routes/quizRoutes");
+const courseProgressRoutes = require("./routes/courseProgressRoutes");
+
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const cors = require("cors");
@@ -25,6 +30,10 @@ app.use('/courses', courseRoutes);
 app.use('/questions', questionRoutes);
 app.use("/feedbacks", feedbacksRoutes);
 app.use("/answers", answersRoutes);
+app.use("/forums", forumRoutes);
+app.use("/groups", groupRoutes);
+app.use("/quizzes", quizRoutes);
+app.use("/course-progress", courseProgressRoutes);
 
 
 swaggerDocs(app);

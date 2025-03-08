@@ -11,12 +11,12 @@ const mailSender = async (email, title, body) => {
       },
     });
 
-    // إرسال البريد
+
     let info = await transporter.sendMail({
-      from: `"Courses " <Courses@gmail.com>`, // بريدك الإلكتروني
-      to: email, // البريد المستقبل
-      subject: title, // عنوان البريد
-      html: body, // محتوى البريد (يمكن أن يكون HTML)
+      from: `"Courses " <Courses@gmail.com>`, 
+      to: email, 
+      subject: title, 
+      html: body, 
     });
 
     console.log("Email sent successfully:", info);

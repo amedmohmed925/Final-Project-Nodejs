@@ -108,20 +108,20 @@ exports.verifyOTP = async (req, res) => {
       return res.status(400).json({ message: "Please provide email and OTP." });
     }
 
-    // البحث عن أحدث سجل OTP
+
     const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
     if (!otpRecord) {
       return res.status(400).json({ message: "Invalid OTP." });
     }
 
-    // التحقق من انتهاء صلاحية الـ OTP
+
     const now = new Date();
     const otpExpiryTime = new Date(otpRecord.createdAt.getTime() + 60 * 60 * 1000); // 1 ساعة
     if (now > otpExpiryTime) {
       return res.status(400).json({ message: "OTP has expired." });
     }
 
-    // البحث عن المستخدم وتحديث حالة التحقق
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
@@ -130,7 +130,7 @@ exports.verifyOTP = async (req, res) => {
     user.isVerified = true;
     await user.save();
 
-    // حذف جميع سجلات الـ OTP المرتبطة بهذا البريد
+
     await OTP.deleteMany({ email });
 
     res.status(200).json({ message: "Account verified successfully. You can now login." });
@@ -147,28 +147,28 @@ exports.resendOTP = async (req, res) => {
       return res.status(400).json({ message: "Please provide your email." });
     }
 
-    // البحث عن المستخدم
+
     const user = await User.findOne({ email });
     if (!user) {
       return res.status(404).json({ message: "User not found." });
     }
 
-    // التحقق من وجود طلب OTP حديث
+
     const recentOTP = await OTP.findOne({ email, createdAt: { $gt: new Date(Date.now() - 60 * 1000) } }); // خلال آخر دقيقة
     if (recentOTP) {
       return res.status(400).json({ message: "Please wait before requesting a new OTP." });
     }
 
-    // حذف جميع سجلات الـ OTP القديمة
+
     await OTP.deleteMany({ email });
 
-    // إنشاء OTP جديد
+
     const otp = Math.floor(100000 + Math.random() * 900000).toString();
 
-    // حفظ OTP جديد في قاعدة البيانات
+
     await OTP.create({ email, otp });
 
-    // إرسال البريد الإلكتروني
+
     await mailSender(
       email,
       "Resend OTP",

@@ -1,4 +1,4 @@
-//answer controller
+
 const { Answer } = require("../models/Answer");
 
 const getAllAnswers = async (req, res) => {

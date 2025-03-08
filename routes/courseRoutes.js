@@ -8,7 +8,7 @@ const resourceController = require('../controllers/resourceController');
 const {isTeacher} = require('../middleware/authMiddleware')
 const { authenticateToken } = require("../middleware/authMiddleware");
 
-// Course routes
+
 router.get('/', courseController.getAllCourses);
 router.get('/:id', courseController.getCourseById);
 router.post('/', authenticateToken, courseController.addCourse);
@@ -16,10 +16,10 @@ router.get("/teacher/:teacherId", authenticateToken, isTeacher , courseControlle
 router.put('/:id', courseController.updateCourse);
 router.delete('/:id', courseController.deleteCourse);
 
-// Nested routes
+
 router.get('/:id/feedbacks', feedbackController.getAllFeedbacks);
-router.get('/:id/quizzies', quizController.getQuizzes);
-router.get('/:id/groups', groupController.getGroups);
+router.get('/:id/quizzies', quizController.getAllQuizzes);
+router.get('/:id/groups', groupController.getAllGroups);
 router.get('/:id/resources', resourceController.getResources);
 
 module.exports = router;

@@ -1,4 +1,4 @@
-//feedbacks routes
+
 const express = require("express");
 const router = express.Router();
 const {getAllFeedbacks, getFeedbackById, addFeedback, updateFeedback, deleteFeedback} = require("../controllers/feedbacksController");
