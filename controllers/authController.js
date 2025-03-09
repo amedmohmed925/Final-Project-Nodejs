@@ -225,65 +225,73 @@ exports.getCurrentUser = async (req, res) => {
 };
 
 exports.forgetPassword = async (req, res, next) => {
-    const { email } = req.body;
-  
-    if (!email) {
-      return res.status(400).json({ message: 'Please provide your email.' });
-    }
-  
-    try {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
-  
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-  
+  const { email } = req.body;
 
-      await OTP.create({ email, otp });
-  
+  if (!email) {
+    return res.status(400).json({ message: "Please provide your email." });
+  }
 
-      await mailSender(
-        email,
-        "Password Reset OTP",
-        `<h1>Password Reset</h1><p>Your OTP code is: ${otp}</p>`
-      );
-  
-      res.status(200).json({ message: 'OTP sent to your email.' });
-    } catch (error) {
-      next(error);
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: "User not found." });
     }
-  };
-  
-  exports.resetPassword = async (req, res, next) => {
-    const { email, otp, newPassword } = req.body;
-  
-    if (!email || !otp || !newPassword) {
-      return res.status(400).json({ message: 'Please provide email, OTP, and new password.' });
-    }
-  
-    try {
-      const user = await User.findOne({ email });
-      if (!user) {
-        return res.status(404).json({ message: 'User not found.' });
-      }
-  
 
-      const otpRecord = await OTP.findOne({ email, otp }).sort({ createdAt: -1 }).limit(1);
-      if (!otpRecord) {
-        return res.status(400).json({ message: 'Invalid OTP.' });
+    // توليد توكن مؤقت لإعادة تعيين الباسورد (ينتهي بعد ساعة)
+    const resetToken = jwt.sign(
+      { id: user._id, email: user.email },
+      process.env.RESET_SECRET || "reset-secret-key", // ضيف الـ RESET_SECRET في الـ .env
+      { expiresIn: "1h" }
+    );
+
+    // رابط إعادة تعيين الباسورد
+    const resetLink = `http://localhost:5173/reset-password?token=${resetToken}&email=${email}`;
+
+    // إرسال الإيميل مع الرابط
+    await mailSender(
+      email,
+      "Reset Your Password",
+      `
+        <h1>Password Reset Request</h1>
+        <p>You requested to reset your password. Click the link below to set a new password:</p>
+        <a href="${resetLink}" style="display: inline-block; padding: 10px 20px; background-color: #ebca26; color: #fff; text-decoration: none; border-radius: 5px;">Reset Password</a>
+        <p>This link will expire in 1 hour.</p>
+        <p>If you didn’t request this, please ignore this email.</p>
+      `
+    );
+
+    res.status(200).json({ message: "Password reset link sent to your email." });
+  } catch (error) {
+    next(error);
+  }
+};  
+
+exports.resetPassword = async (req, res, next) => {
+  const { email, token, newPassword } = req.body;
+
+  if (!email || !token || !newPassword) {
+    return res.status(400).json({ message: 'Please provide email, token, and new password.' });
+  }
+
+  try {
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(404).json({ message: 'User not found.' });
+    }
+
+    // التحقق من التوكن
+    jwt.verify(token, process.env.RESET_SECRET || "reset-secret-key", async (err, decoded) => {
+      if (err || decoded.email !== email) {
+        return res.status(400).json({ message: 'Invalid or expired token.' });
       }
-  
 
       const hashedPassword = await bcrypt.hash(newPassword, 10);
       user.password = hashedPassword;
       await user.save();
-  
 
-      await OTP.deleteOne({ _id: otpRecord._id });
-  
       res.status(200).json({ message: 'Password reset successfully.' });
-    } catch (error) {
-      next(error);
-    }
-  };
+    });
+  } catch (error) {
+    next(error);
+  }
+};
