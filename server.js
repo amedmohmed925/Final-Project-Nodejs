@@ -2,7 +2,7 @@ const express = require("express");
 const authRoutes = require("./routes/authRoutes");
 const courseRoutes = require('./routes/courseRoutes');
 const questionRoutes = require('./routes/questionRoutes');
-const userRoutes = require('./routes/usersRoutes')
+const userRoutes = require('./routes/usersRoutes');
 const feedbacksRoutes = require("./routes/feedbacksRoutes");
 const answersRoutes = require("./routes/answersRoutes");
 const forumRoutes = require("./routes/forumRoutes");
@@ -14,18 +14,19 @@ const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
-require("dotenv").config();
+
+dotenv.config();
 
 const app = express();
 app.use(express.json());
 app.use(cors());
 
-dotenv.config();
-connectDB();
-
+// استخدام URI مختلف بناءً على البيئة
+const dbUri = process.env.NODE_ENV === 'test' ? process.env.TEST_MONGODB_URI : process.env.MONGO_URI;
+connectDB(dbUri);
 
 app.use("/auth", authRoutes);
-app.use('/users',userRoutes)
+app.use('/users', userRoutes);
 app.use('/courses', courseRoutes);
 app.use('/questions', questionRoutes);
 app.use("/feedbacks", feedbacksRoutes);
@@ -34,7 +35,6 @@ app.use("/forums", forumRoutes);
 app.use("/groups", groupRoutes);
 app.use("/quizzes", quizRoutes);
 app.use("/course-progress", courseProgressRoutes);
-
 
 swaggerDocs(app);
 
