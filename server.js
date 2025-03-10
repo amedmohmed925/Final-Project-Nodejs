@@ -13,7 +13,7 @@ const courseProgressRoutes = require("./routes/courseProgressRoutes");
 const dotenv = require("dotenv");
 const connectDB = require("./config/db");
 const cors = require("cors");
-const swaggerDocs = require("./swagger/auth");
+const swaggerDocs = require("./swagger/swagger");
 require("dotenv").config();
 
 const app = express();

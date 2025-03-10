@@ -5,9 +5,9 @@ const options = {
     definition: {
         openapi: "3.0.0",
         info: {
-            title: "Answers API",
+            title: "Authentication API",
             version: "1.0.0",
-            description: "API documentation for answers routes",
+            description: "API documentation for authentication routes",
         },
         servers: [
             {
@@ -16,13 +16,13 @@ const options = {
             },
         ],
     },
-    apis: ["../routes/answersRoutes.js"],
+    apis: ['./routes/*.js'],
 };
 
 const swaggerSpec = swaggerJsDoc(options);
 
-const swaggerAnswersDocs = (app) => {
-    app.use("/answers-api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+const swaggerDocs = (app) => {
+    app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 };
 
-module.exports = swaggerAnswersDocs;
+module.exports = swaggerDocs;
