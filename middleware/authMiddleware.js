@@ -17,7 +17,15 @@ exports.authenticateToken = (req, res, next) => {
     });
 };
 
+exports.isAdmin = (req, res, next) => {
+    if (!req.user || req.user.role !== "admin") {
+      return res.status(403).json({ message: "Access denied, only admins allowed" });
+    }
+    next();
+  };
 
+
+  
 exports.isTeacher = (req, res, next) => {
     if (!req.user || req.user.role !== "teacher") {
         return res.status(403).json({ message: "Access denied, only teachers allowed" });

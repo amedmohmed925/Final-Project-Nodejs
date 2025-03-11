@@ -11,7 +11,7 @@ const {
     deleteUser
 } = require("../controllers/userController");
 
-const { authenticateToken } = require("../middleware/authMiddleware");
+const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
 
 const router = express.Router();
 
@@ -32,7 +32,7 @@ const router = express.Router();
  *       200:
  *         description: List of all users
  */
-router.get("/", getAllUsers);
+router.get("/",authenticateToken, isAdmin, getAllUsers);
 
 /**
  * @swagger
@@ -52,7 +52,7 @@ router.get("/", getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get("/:id", getUserById);
+router.get("/:id",authenticateToken, isAdmin, getUserById);
 
 /**
  * @swagger
