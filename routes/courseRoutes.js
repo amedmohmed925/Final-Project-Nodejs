@@ -1,4 +1,3 @@
-// routes/courseRoutes.js
 const express = require('express');
 const router = express.Router();
 const courseController = require('../controllers/courseController');
@@ -8,6 +7,7 @@ const groupController = require('../controllers/groupController');
 const resourceController = require('../controllers/resourceController');
 const { isTeacher } = require('../middleware/authMiddleware');
 const { authenticateToken } = require("../middleware/authMiddleware");
+const upload = require('../multerConfig'); 
 
 /**
  * @swagger
@@ -74,14 +74,14 @@ router.get('/:id', courseController.getCourseById);
  * @swagger
  * /courses:
  *   post:
- *     summary: Create a new course
+ *     summary: Create a new course with image and video uploads
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -91,22 +91,26 @@ router.get('/:id', courseController.getCourseById);
  *                 type: string
  *               featuredImage:
  *                 type: string
+ *                 format: binary
+ *                 description: The featured image file (jpeg, jpg, png)
  *               lessons:
+ *                 type: string
+ *                 description: JSON string of lessons (e.g., [{"title": "Lesson 1"}, {"title": "Lesson 2"}])
+ *               lessonVideos:
  *                 type: array
  *                 items:
  *                   type: string
+ *                   format: binary
+ *                 description: Video files for lessons (mp4, mov)
  *               quizzes:
- *                 type: array
- *                 items:
- *                   type: string
+ *                 type: string
+ *                 description: JSON string of quizzes
  *               resources:
- *                 type: array
- *                 items:
- *                   type: string
+ *                 type: string
+ *                 description: JSON string of resources
  *               tags:
- *                 type: array
- *                 items:
- *                   type: string
+ *                 type: string
+ *                 description: JSON string of tags
  *     responses:
  *       201:
  *         description: Course created successfully
@@ -115,7 +119,7 @@ router.get('/:id', courseController.getCourseById);
  *             schema:
  *               $ref: '#/components/schemas/Course'
  *       400:
- *         description: Bad request
+ *         description: Bad request (e.g., invalid file type or JSON format)
  *         content:
  *           application/json:
  *             schema:
@@ -124,7 +128,14 @@ router.get('/:id', courseController.getCourseById);
  *                 message:
  *                   type: string
  */
-router.post('/', authenticateToken, courseController.addCourse);
+router.post(
+  '/',
+  upload.fields([
+    { name: 'featuredImage', maxCount: 1 },
+    { name: 'lessonVideos' }, 
+  ]),
+  courseController.addCourse
+);
 
 /**
  * @swagger
