@@ -137,7 +137,6 @@ router.get('/', authenticateToken, courseController.getAllCourses);
  *         description: Server error
  */
 router.get('/:id', authenticateToken, courseController.getCourseById);
-
 /**
  * @swagger
  * /courses/:
@@ -168,7 +167,7 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  *                 description: The featured image file (jpeg, jpg, or png)
  *               lessons:
  *                 type: string
- *                 description: JSON string of lessons (e.g., [{"title": "Lesson 1"}, {"title": "Lesson 2"}])
+ *                 description: JSON string of lessons
  *                 example: '[{"title": "Lesson 1: HTML Basics"}, {"title": "Lesson 2: CSS Basics"}]'
  *               lessonVideos:
  *                 type: array
@@ -209,40 +208,10 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  *                 message: "Maximum 30 lesson videos are allowed"
  *       401:
  *         description: Unauthorized (invalid or missing token)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Error message
- *               example:
- *                 message: "Invalid token"
  *       403:
  *         description: Forbidden (user is not a teacher)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Error message
- *               example:
- *                 message: "Access denied: Only teachers can create courses"
  *       500:
  *         description: Internal server error
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Error message
- *               example:
- *                 message: "Something went wrong"
  */
 router.post(
   '/',

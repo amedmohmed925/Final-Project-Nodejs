@@ -8,8 +8,9 @@ exports.authenticateToken = (req, res, next) => {
     }
 
     const token = authHeader.split(" ")[1];
-
+    console.log('Token received:', token);
     jwt.verify(token, process.env.ACCESS_SECRET, (err, user) => {
+        console.log('JWT Error:', err);
         if (err) return res.status(403).json({ message: "Forbidden" });
 
         req.user = user;
