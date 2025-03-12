@@ -142,7 +142,7 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  * /courses/:
  *   post:
  *     summary: Create a new course with image and video uploads
- *     description: Create a new course by providing a title, description, lessons, quizzes, resources, tags, and optionally uploading a featured image and lesson videos. Requires teacher authentication and teacher role.
+ *     description: Create a new course by providing a title, description, lessons, quizzes, resources, tags, and optionally uploading a featured image, lesson videos, and thumbnails. Requires teacher authentication and teacher role.
  *     tags: [Courses]
  *     security:
  *       - bearerAuth: []
@@ -161,6 +161,18 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  *                 type: string
  *                 description: The description of the course
  *                 example: "Learn the basics of web development with HTML, CSS, and JavaScript."
+ *               price:
+ *                 type: string
+ *                 description: The price of the course
+ *                 example: "29.99"
+ *               level:
+ *                 type: string
+ *                 description: The level of the course (Beginner or Professional)
+ *                 example: "Beginner"
+ *               category:
+ *                 type: string
+ *                 description: The category of the course
+ *                 example: "Programming"
  *               featuredImage:
  *                 type: string
  *                 format: binary
@@ -168,21 +180,23 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  *               lessons:
  *                 type: string
  *                 description: JSON string of lessons
- *                 example: '[{"title": "Lesson 1: HTML Basics"}, {"title": "Lesson 2: CSS Basics"}]'
+ *                 example: '[{"title": "Lesson 1: HTML Basics", "content": "Learn HTML", "quiz": "HTML Quiz"}]'
  *               lessonVideos:
  *                 type: array
  *                 items:
  *                   type: string
  *                   format: binary
  *                 description: Video files for lessons (mp4 or mov, max 30 files)
- *               quizzes:
- *                 type: string
- *                 description: JSON string of quizzes
- *                 example: '[]'
+ *               lessonThumbnails:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *                 description: Thumbnail images for lesson videos (jpeg, jpg, or png, max 30 files)
  *               resources:
  *                 type: string
  *                 description: JSON string of resources
- *                 example: '[]'
+ *                 example: '[{"name": "Resource 1", "type": "pdf", "url": "https://example.com"}]'
  *               tags:
  *                 type: string
  *                 description: JSON string of tags
@@ -196,16 +210,6 @@ router.get('/:id', authenticateToken, courseController.getCourseById);
  *               $ref: '#/components/schemas/Course'
  *       400:
  *         description: Bad request (e.g., invalid data, exceeded video limit, or file type error)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                   description: Error message
- *               example:
- *                 message: "Maximum 30 lesson videos are allowed"
  *       401:
  *         description: Unauthorized (invalid or missing token)
  *       403:
@@ -218,8 +222,9 @@ router.post(
   authenticateToken,
   isTeacher,
   upload.fields([
-    { name: 'featuredImage', maxCount: 1 },
-    { name: 'lessonVideos' },
+    { name: 'featuredImage', maxCount: 1 }, // الصورة المميزة (ملف واحد)
+    { name: 'lessonVideos', maxCount: 30 }, // فيديوهات الدروس (حد أقصى 30)
+    { name: 'lessonThumbnails', maxCount: 30 }, // الصور المصغرة للدروس (حد أقصى 30)
   ]),
   courseController.addCourse
 );

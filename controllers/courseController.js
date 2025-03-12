@@ -1,103 +1,147 @@
-
 const Course = require('../models/Course');
+const Resource = require('../models/Resource');
 const cloudinary = require('../cloudinaryConfig');
-const fs = require('fs'); 
-
+const fs = require('fs');
 
 exports.addCourse = async (req, res) => {
-  console.log('Inside addCourse, User:', req.user);
-  const { title, description, lessons, quizzes, resources, tags } = req.body;
+  const { title, description, price, level, category, lessons, resources, tags } = req.body;
   const teacherId = req.user.id;
 
   try {
-    console.log('Request Body:', req.body);
-    console.log('Files:', req.files);
-
     const lessonVideos = req.files && req.files.lessonVideos ? req.files.lessonVideos : [];
+    const lessonThumbnails = req.files && req.files.lessonThumbnails ? req.files.lessonThumbnails : [];
     if (lessonVideos.length > 30) {
       return res.status(400).json({ message: 'Maximum 30 lesson videos are allowed' });
     }
 
-    // رفع الصورة المميزة (Featured Image) بشكل متزامن لأنها صغيرة
     let featuredImageUrl = '';
     if (req.files && req.files.featuredImage) {
-      console.log('Uploading featured image...');
       const featuredImage = req.files.featuredImage[0];
       const result = await cloudinary.uploader.upload(featuredImage.path, {
         folder: 'courses/featured_images',
         resource_type: 'image',
       });
       featuredImageUrl = result.secure_url;
-      fs.unlinkSync(featuredImage.path);
-      console.log('Featured Image Uploaded:', featuredImageUrl);
+      if (fs.existsSync(featuredImage.path)) fs.unlinkSync(featuredImage.path); // التحقق قبل الحذف
     }
 
-    // تحليل الدروس وتحضيرها مع روابط مؤقتة للفيديوهات
-    const parsedLessons = lessons ? JSON.parse(lessons) : [];
-    const lessonsWithVideos = parsedLessons.map((lesson, index) => ({
+    // تحليل الدروس
+    let parsedLessons = [];
+    if (lessons) {
+      if (Array.isArray(lessons)) {
+        parsedLessons = lessons.map((lesson) => {
+          try {
+            return JSON.parse(lesson);
+          } catch (e) {
+            return { title: '', content: '', quiz: '' };
+          }
+        });
+      } else {
+        try {
+          parsedLessons = JSON.parse(lessons);
+          if (!Array.isArray(parsedLessons)) {
+            parsedLessons = [parsedLessons];
+          }
+        } catch (e) {
+          parsedLessons = [];
+        }
+      }
+    }
+
+    const lessonsWithFiles = parsedLessons.map((lesson, index) => ({
       ...lesson,
-      videoUrl: lessonVideos[index] ? `pending:${lessonVideos[index].filename}` : '', // رابط مؤقت
+      videoUrl: lessonVideos[index] ? `pending:${lessonVideos[index].filename}` : '',
+      thumbnailUrl: lessonThumbnails[index] ? `pending:${lessonThumbnails[index].filename}` : '',
     }));
 
-    // إنشاء الكورس وحفظه
+    // إنشاء الكورس أولاً بدون الموارد
     const newCourse = new Course({
       title,
       description,
       featuredImage: featuredImageUrl,
-      lessons: lessonsWithVideos,
-      quizzes: quizzes ? JSON.parse(quizzes) : [],
-      resources: resources ? JSON.parse(resources) : [],
+      lessons: lessonsWithFiles,
+      resources: [], // سنضيف الموارد لاحقًا
       tags: tags ? JSON.parse(tags) : [],
       teacherId,
+      price: parseFloat(price),
+      level,
+      category,
     });
 
-    await newCourse.save();
-    console.log('Course Saved Initially:', newCourse._id);
+    await newCourse.save(); // حفظ الكورس للحصول على _id
 
-    // إرجاع الـ response فورًا
+    // تحليل وإنشاء الموارد مع إضافة courseId
+    const parsedResources = resources ? JSON.parse(resources) : [];
+    const resourceIds = await Promise.all(
+      parsedResources.map(async (resource) => {
+        const newResource = new Resource({
+          ...resource,
+          courseId: newCourse._id, // إضافة courseId
+        });
+        await newResource.save();
+        return newResource._id;
+      })
+    );
+
+    // تحديث الكورس بمعرفات الموارد
+    newCourse.resources = resourceIds;
+    await newCourse.save();
+
     res.status(201).json({
       ...newCourse._doc,
-      message: 'Course created, videos are being uploaded in the background',
+      message: 'Course created, videos and thumbnails are being uploaded in the background',
     });
 
-    // رفع الفيديوهات في الخلفية
-    if (lessonVideos.length > 0) {
-      lessonVideos.forEach(async (video, index) => {
+    // رفع الفيديوهات والصور المصغرة في الخلفية
+    if (lessonVideos.length > 0 || lessonThumbnails.length > 0) {
+      lessonsWithFiles.forEach(async (lesson, index) => {
         try {
-          console.log(`Starting background upload for video ${index + 1}...`);
-          const result = await cloudinary.uploader.upload(video.path, {
-            folder: 'courses/lesson_videos',
-            resource_type: 'video',
-            chunk_size: 6000000, // 6MB chunks للتعامل مع الأحجام الكبيرة
-          });
-          console.log(`Video ${index + 1} Uploaded:`, result.secure_url);
+          if (lessonVideos[index]) {
+            const videoResult = await cloudinary.uploader.upload(lessonVideos[index].path, {
+              folder: 'courses/lesson_videos',
+              resource_type: 'video',
+              chunk_size: 6000000,
+            });
+            newCourse.lessons[index].videoUrl = videoResult.secure_url;
+            if (fs.existsSync(lessonVideos[index].path)) fs.unlinkSync(lessonVideos[index].path);
+          }
 
-          // تحديث الدرس بالرابط الجديد
-          newCourse.lessons[index].videoUrl = result.secure_url;
+          if (lessonThumbnails[index]) {
+            const thumbResult = await cloudinary.uploader.upload(lessonThumbnails[index].path, {
+              folder: 'courses/lesson_thumbnails',
+              resource_type: 'image',
+            });
+            newCourse.lessons[index].thumbnailUrl = thumbResult.secure_url;
+            if (fs.existsSync(lessonThumbnails[index].path)) fs.unlinkSync(lessonThumbnails[index].path);
+          }
+
           await newCourse.save();
-          console.log(`Course Updated with Video ${index + 1}`);
-
-          // حذف الملف المؤقت بعد الرفع
-          fs.unlinkSync(video.path);
         } catch (uploadErr) {
-          console.log(`Failed to upload video ${index + 1}:`, uploadErr);
-          // ممكن تضيف آلية لإعادة المحاولة أو تسجيل الفشل للمعالجة لاحقًا
+          console.log(`Failed to upload files for lesson ${index + 1}:`, uploadErr);
         }
       });
     }
   } catch (err) {
     console.log('Error in addCourse:', err);
     if (req.files) {
-      if (req.files.featuredImage) {
+      if (req.files.featuredImage && fs.existsSync(req.files.featuredImage[0]?.path)) {
         fs.unlinkSync(req.files.featuredImage[0].path);
       }
       if (req.files.lessonVideos) {
-        req.files.lessonVideos.forEach((file) => fs.unlinkSync(file.path));
+        req.files.lessonVideos.forEach((file) => {
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        });
+      }
+      if (req.files.lessonThumbnails) {
+        req.files.lessonThumbnails.forEach((file) => {
+          if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+        });
       }
     }
-    res.status(400).json({ message: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
+
 
 exports.getAllCourses = async (req, res) => {
   try {
@@ -122,11 +166,9 @@ exports.getCoursesByTeacher = async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
     const courses = await Course.find({ teacherId });
-
     if (!courses.length) {
-      return res.status(404).json({ message: "No courses found for this teacher" });
+      return res.status(404).json({ message: 'No courses found for this teacher' });
     }
-
     res.status(200).json(courses);
   } catch (err) {
     res.status(500).json({ message: err.message });
@@ -134,12 +176,18 @@ exports.getCoursesByTeacher = async (req, res) => {
 };
 
 exports.updateCourse = async (req, res) => {
-  const { title, description, featuredImage } = req.body;
+  const { title, description, featuredImage, price, level } = req.body;
   try {
     const updatedCourse = await Course.findByIdAndUpdate(
       req.params.id,
-      { title, description, featuredImage },
-      { new: true }
+      {
+        title,
+        description,
+        featuredImage,
+        price: price ? parseFloat(price) : undefined, // تحديث السعر إذا تم تمريره
+        level, // تحديث المستوى إذا تم تمريره
+      },
+      { new: true, runValidators: true } // تشغيل التحقق من الصحة
     );
     if (!updatedCourse) return res.status(404).json({ message: 'Course not found' });
     res.status(200).json(updatedCourse);
