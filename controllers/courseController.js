@@ -4,7 +4,7 @@ const cloudinary = require('../cloudinaryConfig');
 const fs = require('fs');
 
 exports.addCourse = async (req, res) => {
-  const { title, description, price, level, category, lessons, resources, tags } = req.body;
+  const { title, description, price, level, category, sections, resources, tags } = req.body;
   const teacherId = req.user.id;
 
   try {
@@ -22,45 +22,56 @@ exports.addCourse = async (req, res) => {
         resource_type: 'image',
       });
       featuredImageUrl = result.secure_url;
-      if (fs.existsSync(featuredImage.path)) fs.unlinkSync(featuredImage.path); // التحقق قبل الحذف
+      if (fs.existsSync(featuredImage.path)) fs.unlinkSync(featuredImage.path);
     }
 
-    // تحليل الدروس
-    let parsedLessons = [];
-    if (lessons) {
-      if (Array.isArray(lessons)) {
-        parsedLessons = lessons.map((lesson) => {
+    // تحليل الأقسام
+    let parsedSections = [];
+    if (sections) {
+      if (Array.isArray(sections)) {
+        parsedSections = sections.map((section) => {
           try {
-            return JSON.parse(lesson);
+            return JSON.parse(section);
           } catch (e) {
-            return { title: '', content: '', quiz: '' };
+            return { title: '', lessons: [] };
           }
         });
       } else {
         try {
-          parsedLessons = JSON.parse(lessons);
-          if (!Array.isArray(parsedLessons)) {
-            parsedLessons = [parsedLessons];
+          parsedSections = JSON.parse(sections);
+          if (!Array.isArray(parsedSections)) {
+            parsedSections = [parsedSections];
           }
         } catch (e) {
-          parsedLessons = [];
+          parsedSections = [];
         }
       }
     }
 
-    const lessonsWithFiles = parsedLessons.map((lesson, index) => ({
-      ...lesson,
-      videoUrl: lessonVideos[index] ? `pending:${lessonVideos[index].filename}` : '',
-      thumbnailUrl: lessonThumbnails[index] ? `pending:${lessonThumbnails[index].filename}` : '',
+    // معالجة الفيديوهات والصور المصغرة لكل حلقة داخل الأقسام
+    let videoIndex = 0;
+    let thumbIndex = 0;
+    const sectionsWithFiles = parsedSections.map((section) => ({
+      title: section.title,
+      lessons: section.lessons.map((lesson) => {
+        const lessonData = {
+          ...lesson,
+          videoUrl: lessonVideos[videoIndex] ? `pending:${lessonVideos[videoIndex].filename}` : '',
+          thumbnailUrl: lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIndex].filename}` : '',
+        };
+        if (lessonVideos[videoIndex]) videoIndex++;
+        if (lessonThumbnails[thumbIndex]) thumbIndex++;
+        return lessonData;
+      }),
     }));
 
-    // إنشاء الكورس أولاً بدون الموارد
+    // إنشاء الكورس
     const newCourse = new Course({
       title,
       description,
       featuredImage: featuredImageUrl,
-      lessons: lessonsWithFiles,
-      resources: [], // سنضيف الموارد لاحقًا
+      sections: sectionsWithFiles,
+      resources: [],
       tags: tags ? JSON.parse(tags) : [],
       teacherId,
       price: parseFloat(price),
@@ -68,22 +79,21 @@ exports.addCourse = async (req, res) => {
       category,
     });
 
-    await newCourse.save(); // حفظ الكورس للحصول على _id
+    await newCourse.save();
 
-    // تحليل وإنشاء الموارد مع إضافة courseId
+    // تحليل وإنشاء الموارد
     const parsedResources = resources ? JSON.parse(resources) : [];
     const resourceIds = await Promise.all(
       parsedResources.map(async (resource) => {
         const newResource = new Resource({
           ...resource,
-          courseId: newCourse._id, // إضافة courseId
+          courseId: newCourse._id,
         });
         await newResource.save();
         return newResource._id;
       })
     );
 
-    // تحديث الكورس بمعرفات الموارد
     newCourse.resources = resourceIds;
     await newCourse.save();
 
@@ -94,31 +104,37 @@ exports.addCourse = async (req, res) => {
 
     // رفع الفيديوهات والصور المصغرة في الخلفية
     if (lessonVideos.length > 0 || lessonThumbnails.length > 0) {
-      lessonsWithFiles.forEach(async (lesson, index) => {
-        try {
-          if (lessonVideos[index]) {
-            const videoResult = await cloudinary.uploader.upload(lessonVideos[index].path, {
-              folder: 'courses/lesson_videos',
-              resource_type: 'video',
-              chunk_size: 6000000,
-            });
-            newCourse.lessons[index].videoUrl = videoResult.secure_url;
-            if (fs.existsSync(lessonVideos[index].path)) fs.unlinkSync(lessonVideos[index].path);
-          }
+      let videoIdx = 0;
+      let thumbIdx = 0;
+      sectionsWithFiles.forEach(async (section, sectionIndex) => {
+        section.lessons.forEach(async (lesson, lessonIndex) => {
+          try {
+            if (lesson.videoUrl.startsWith('pending:')) {
+              const videoResult = await cloudinary.uploader.upload(lessonVideos[videoIdx].path, {
+                folder: 'courses/lesson_videos',
+                resource_type: 'video',
+                chunk_size: 6000000,
+              });
+              newCourse.sections[sectionIndex].lessons[lessonIndex].videoUrl = videoResult.secure_url;
+              if (fs.existsSync(lessonVideos[videoIdx].path)) fs.unlinkSync(lessonVideos[videoIdx].path);
+              videoIdx++;
+            }
 
-          if (lessonThumbnails[index]) {
-            const thumbResult = await cloudinary.uploader.upload(lessonThumbnails[index].path, {
-              folder: 'courses/lesson_thumbnails',
-              resource_type: 'image',
-            });
-            newCourse.lessons[index].thumbnailUrl = thumbResult.secure_url;
-            if (fs.existsSync(lessonThumbnails[index].path)) fs.unlinkSync(lessonThumbnails[index].path);
-          }
+            if (lesson.thumbnailUrl.startsWith('pending:')) {
+              const thumbResult = await cloudinary.uploader.upload(lessonThumbnails[thumbIdx].path, {
+                folder: 'courses/lesson_thumbnails',
+                resource_type: 'image',
+              });
+              newCourse.sections[sectionIndex].lessons[lessonIndex].thumbnailUrl = thumbResult.secure_url;
+              if (fs.existsSync(lessonThumbnails[thumbIdx].path)) fs.unlinkSync(lessonThumbnails[thumbIdx].path);
+              thumbIdx++;
+            }
 
-          await newCourse.save();
-        } catch (uploadErr) {
-          console.log(`Failed to upload files for lesson ${index + 1}:`, uploadErr);
-        }
+            await newCourse.save();
+          } catch (uploadErr) {
+            console.log(`Failed to upload files for lesson ${lessonIndex + 1} in section ${sectionIndex + 1}:`, uploadErr);
+          }
+        });
       });
     }
   } catch (err) {
