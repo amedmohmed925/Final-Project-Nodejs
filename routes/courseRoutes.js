@@ -296,7 +296,7 @@ router.get("/teacher/:teacherId", authenticateToken, isTeacher, courseController
  *     requestBody:
  *       required: true
  *       content:
- *         application/json:
+ *         multipart/form-data:
  *           schema:
  *             type: object
  *             properties:
@@ -304,12 +304,43 @@ router.get("/teacher/:teacherId", authenticateToken, isTeacher, courseController
  *                 type: string
  *               description:
  *                 type: string
+ *               price:
+ *                 type: string
+ *               level:
+ *                 type: string
+ *               category:
+ *                 type: string
+ *               sections:
+ *                 type: string
+ *                 description: JSON string of sections
+ *               resources:
+ *                 type: string
+ *                 description: JSON string of resources
+ *               tags:
+ *                 type: string
+ *                 description: JSON string of tags
  *               featuredImage:
  *                 type: string
- *             example:
- *               title: "Updated Course Title"
- *               description: "Updated course description"
- *               featuredImage: "https://new-image-url.com"
+ *                 format: binary
+ *               lessonVideos:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *               lessonThumbnails:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *                   format: binary
+ *           example:
+ *             title: "Updated Course Title"
+ *             description: "Updated course description"
+ *             price: "50.94"
+ *             level: "Professional"
+ *             category: "Programming"
+ *             sections: "[{\"title\":\"Section 1\",\"lessons\":[{\"title\":\"Lesson 1\",\"content\":\"Content\"}]}]"
+ *             resources: "[{\"name\":\"Resource 1\",\"url\":\"http://example.com\"}]"
+ *             tags: "[\"tag1\",\"tag2\"]"
  *     responses:
  *       200:
  *         description: Course updated successfully
@@ -319,30 +350,22 @@ router.get("/teacher/:teacherId", authenticateToken, isTeacher, courseController
  *               $ref: '#/components/schemas/Course'
  *       404:
  *         description: Course not found
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *               example:
- *                 message: "Course not found"
  *       400:
- *         description: Bad request (e.g., invalid data)
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *               example:
- *                 message: "Invalid data"
+ *         description: Bad request
  *       500:
  *         description: Server error
  */
-router.put('/:id', authenticateToken, courseController.updateCourse);
+router.put(
+  "/:id",
+  authenticateToken,
+  isTeacher,
+  upload.fields([
+    { name: "featuredImage", maxCount: 1 },
+    { name: "lessonVideos", maxCount: 30 },
+    { name: "lessonThumbnails", maxCount: 30 },
+  ]),
+  courseController.updateCourse
+);
 
 /**
  * @swagger
