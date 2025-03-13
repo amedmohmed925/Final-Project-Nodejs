@@ -100,7 +100,7 @@ const upload = require('../multerConfig');
  *                 message:
  *                   type: string
  */
-router.get('/', authenticateToken, courseController.getAllCourses);
+router.get('/', courseController.getAllCourses);
 
 /**
  * @swagger
@@ -136,7 +136,7 @@ router.get('/', authenticateToken, courseController.getAllCourses);
  *       500:
  *         description: Server error
  */
-router.get('/:id', authenticateToken, courseController.getCourseById);
+router.get('/:id', courseController.getCourseById);
 /**
  * @swagger
  * /courses/:
