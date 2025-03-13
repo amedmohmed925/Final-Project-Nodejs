@@ -11,6 +11,8 @@ const forumRoutes = require("./routes/forumRoutes");
 const groupRoutes = require("./routes/groupRoutes");
 const quizRoutes = require("./routes/quizRoutes");
 const courseProgressRoutes = require("./routes/courseProgressRoutes");
+const cartRoutes = require('./routes/cartRoutes');
+
 
 const connectDB = require("./config/db");
 const cors = require("cors");
@@ -42,6 +44,8 @@ app.use("/forums", forumRoutes);
 app.use("/groups", groupRoutes);
 app.use("/quizzes", quizRoutes);
 app.use("/course-progress", courseProgressRoutes);
+app.use('/cart', cartRoutes);
+
 
 swaggerDocs(app);
 
