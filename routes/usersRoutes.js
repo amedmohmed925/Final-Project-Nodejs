@@ -8,13 +8,14 @@ const {
     getUserNotifications,
     getUserActivities,
     editUserInfo,
-    deleteUser
+    deleteUser,
+    getAllTeachers
 } = require("../controllers/userController");
 
 const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
 
 const router = express.Router();
-
+router.get("/teachers", getAllTeachers); // مسار جديد لجلب المعلمين
 /**
  * @swagger
  * tags:
