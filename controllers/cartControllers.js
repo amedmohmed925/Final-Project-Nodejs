@@ -1,144 +1,222 @@
 const Coupon = require("../models/Coupon");
-const Cart = require('../models/Cart');
+const Cart = require("../models/Cart");
+const Course = require("../models/Course");
+const mongoose = require("mongoose");
 
-const Course = require('../models/Course'); // استيراد موديل الكورسات
-
-let addCart = async (req, res) => {
-    const { userId, courseId } = req.body;
-
-    try {
-        let cart = await Cart.findOne({ userId });
-
-        if (!cart) {
-            cart = new Cart({ userId, items: [], total: 0 });
-        }
-
-        const course = await Course.findById(courseId);
-        if (!course) return res.status(404).json({ message: "Course not found" });
-
-        const existingItem = cart.items.find(item => item.courseId.toString() === courseId);
-        if (existingItem) {
-            return res.status(400).json({ message: "Course is already in the cart." });
-        }
-
-        cart.items.push({
-            courseId,
-            title: course.title,
-            price: course.price, // تخزين السعر وقت الاضافه
-            courseImage: course.featuredImage
-        });
-
-        cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
-        await cart.save();
-
-        res.json(cart);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
-};
-let removeCart = async (req, res) => {
-    const { userId, courseId } = req.body;
-
-    try {
-        let cart = await Cart.findOne({ userId });
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
-
-        const itemIndex = cart.items.findIndex(item => item.courseId.toString() === courseId);
-        if (itemIndex === -1) return res.status(404).json({ message: "Course not found in cart" });
-
-        // إزالة العنصر
-        cart.items.splice(itemIndex, 1);
-        
-        cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
-
-        cart.finalTotal = cart.total - (cart.total * (cart.discount / 100));
-
-        await cart.save();
-        res.json(cart);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
-    }
+// Helper function to recalculate totals
+const calculateCartTotals = (cart) => {
+  cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
+  cart.finalTotal = cart.total - (cart.total * (cart.discount / 100));
+  return cart;
 };
 
+const addCart = async (req, res) => {
+  const userId = req.user.id; // Extracted from JWT token
+  const { courseId } = req.body;
 
-let getCart = async (req, res) => {
-    try {
-        const cart = await Cart.findOne({ userId: req.params.userId })
-            .populate('items.courseId', 'title price featuredImage level');
-
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
-
-        res.json(cart);
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  try {
+    // Input validation
+    if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+      return res.status(400).json({ message: "Valid Course ID is required" });
     }
-}
 
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      cart = new Cart({ userId, items: [], total: 0, discount: 0, finalTotal: 0 });
+    }
 
-let checkout = async (req, res) => {
-    const { userId } = req.body;
+    const course = await Course.findById(courseId).select("title price featuredImage available");
+    if (!course) {
+      return res.status(404).json({ message: "Course not found" });
+    }
+ 
 
+    const existingItem = cart.items.find(
+      (item) => item.courseId.toString() === courseId
+    );
+    if (existingItem) {
+      return res.status(400).json({ message: "Course is already in the cart" });
+    }
+
+    cart.items.push({
+      courseId,
+      title: course.title,
+      price: course.price,
+      courseImage: course.featuredImage,
+      isPurchased: false,
+    });
+
+    calculateCartTotals(cart);
+    await cart.save();
+
+    res.status(200).json(cart);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to add course to cart", error: error.message });
+  }
+};
+
+const removeCart = async (req, res) => {
+    const userId = req.user.id;
+    const { courseId } = req.body;
+  
+    console.log("Received courseId:", courseId);
+  
     try {
-        let cart = await Cart.findOne({ userId });
-        if (!cart || cart.items.length === 0) 
-            return res.status(400).json({ message: "Cart is empty" });
-
-        cart.items.forEach(item => {
-            item.isPurchased = true;
-        });
-
-        // إفراغ السلة بالكامل وإعادة ضبط القيم
-        cart.items = [];
-        cart.total = 0;
+      if (!courseId || !mongoose.Types.ObjectId.isValid(courseId)) {
+        return res.status(400).json({ message: "Valid Course ID is required" });
+      }
+  
+      let cart = await Cart.findOne({ userId });
+      if (!cart) {
+        return res.status(404).json({ message: "Cart not found" });
+      }
+  
+      const itemIndex = cart.items.findIndex(
+        (item) => item.courseId.toString() === courseId // مقارنة الـ courseId كـ string
+      );
+      if (itemIndex === -1) {
+        return res.status(404).json({ message: "Course not found in cart" });
+      }
+  
+      cart.items.splice(itemIndex, 1);
+      calculateCartTotals(cart);
+  
+      if (cart.items.length === 0) {
         cart.discount = 0;
-        cart.finalTotal = 0;
-
-        await cart.save();
-
-        res.json({ message: "Checkout successful", cart });
+      }
+  
+      await cart.save();
+  
+      // إرجاع البيانات بنفس الهيكل اللي بيرجعه getCart
+      await cart.populate("items.courseId", "title price featuredImage level");
+      res.status(200).json({
+        items: cart.items.map(item => ({
+          courseId: {
+            _id: item.courseId._id.toString(),
+            title: item.courseId.title,
+            price: item.courseId.price,
+            featuredImage: item.courseId.featuredImage,
+            level: item.courseId.level
+          }
+        })),
+        total: cart.total,
+        discount: cart.discount || 0,
+        finalTotal: cart.finalTotal
+      });
     } catch (error) {
-        res.status(500).json({ message: error.message });
+      res.status(500).json({ message: "Failed to remove course from cart", error: error.message });
     }
+  };
+  
+const getCart = async (req, res) => {
+  const { userId } = req.params;
+
+  try {
+    // Input validation
+    if (!userId || !mongoose.Types.ObjectId.isValid(userId)) {
+      return res.status(400).json({ message: "Valid User ID is required" });
+    }
+    if (req.user.id !== userId) {
+      return res.status(403).json({ message: "Unauthorized access to this cart" });
+    }
+
+    const cart = await Cart.findOne({ userId }).populate(
+      "items.courseId",
+      "title price featuredImage level"
+    );
+
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+
+    res.status(200).json(cart);
+  } catch (error) {
+    res.status(500).json({ message: "Failed to retrieve cart", error: error.message });
+  }
+};
+
+const checkout = async (req, res) => {
+  const userId = req.user.id; // Extracted from JWT token
+
+  try {
+    let cart = await Cart.findOne({ userId });
+    if (!cart || cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    // Mark items as purchased (for tracking purposes)
+    const purchasedItems = cart.items.map((item) => ({
+      userId,
+      courseId: item.courseId,
+      title: item.title,
+      price: item.price,
+      purchaseDate: new Date(),
+    }));
+
+    // Here you could save purchasedItems to a "Purchases" collection
+    // e.g., await Purchase.insertMany(purchasedItems);
+
+    // Reset cart
+    cart.items = [];
+    cart.total = 0;
+    cart.discount = 0;
+    cart.finalTotal = 0;
+
+    await cart.save();
+
+    res.status(200).json({ message: "Checkout successful", cart, purchasedItems });
+  } catch (error) {
+    res.status(500).json({ message: "Checkout failed", error: error.message });
+  }
 };
 
 const applyCoupon = async (req, res) => {
-    const { userId, couponCode } = req.body;
+  const userId = req.user.id; // Extracted from JWT token
+  const { couponCode } = req.body;
 
-    try {
-        let cart = await Cart.findOne({ userId });
-        if (!cart) return res.status(404).json({ message: "Cart not found" });
-
-        const coupon = await Coupon.findOne({ code: couponCode });
-
-        if (!coupon) {
-            return res.status(400).json({ message: "Invalid coupon code" });
-        }
-
-        if (new Date() > coupon.expiresAt) {
-            return res.status(400).json({ message: "Coupon has expired" });
-        }
-
-        let discountPercentage = coupon.discount;
-        if (discountPercentage > 100) discountPercentage = 100;  // تأكيد عدم تجاوز 100%
-
-        cart.discount = discountPercentage;
-        cart.finalTotal = cart.total - (cart.total * (cart.discount / 100));
-
-        await cart.save();
-
-        res.json({ message: "Coupon applied", cart });
-    } catch (error) {
-        res.status(500).json({ message: error.message });
+  try {
+    // Input validation
+    if (!couponCode || typeof couponCode !== "string") {
+      return res.status(400).json({ message: "Valid coupon code is required" });
     }
+
+    let cart = await Cart.findOne({ userId });
+    if (!cart) {
+      return res.status(404).json({ message: "Cart not found" });
+    }
+    if (cart.items.length === 0) {
+      return res.status(400).json({ message: "Cart is empty, cannot apply coupon" });
+    }
+
+    const coupon = await Coupon.findOne({ code: couponCode });
+    if (!coupon) {
+      return res.status(400).json({ message: "Invalid coupon code" });
+    }
+    if (new Date() > coupon.expiresAt) {
+      return res.status(400).json({ message: "Coupon has expired" });
+    }
+    if (coupon.minPurchase && cart.total < coupon.minPurchase) {
+      return res.status(400).json({
+        message: `Cart total must be at least ${coupon.minPurchase} to use this coupon`,
+      });
+    }
+
+    let discountPercentage = Math.min(coupon.discount, 100); // Cap at 100%
+    cart.discount = discountPercentage;
+    calculateCartTotals(cart);
+
+    await cart.save();
+
+    res.status(200).json({ message: "Coupon applied successfully", cart });
+  } catch (error) {
+    res.status(500).json({ message: "Failed to apply coupon", error: error.message });
+  }
 };
 
-
-
-
 module.exports = {
-    addCart,
-    removeCart,
-    getCart,
-    checkout,
-    applyCoupon,
+  addCart,
+  removeCart,
+  getCart,
+  checkout,
+  applyCoupon,
 };

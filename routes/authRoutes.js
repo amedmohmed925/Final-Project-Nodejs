@@ -191,7 +191,7 @@ router.post("/refresh", refreshToken);
  *       500:
  *         description: Server error
  */
-router.post("/logout", authenticateToken, logout);
+router.post("/logout", logout);
 
 /**
  * @swagger
