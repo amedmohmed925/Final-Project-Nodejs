@@ -12,8 +12,8 @@ const groupRoutes = require("./routes/groupRoutes");
 const quizRoutes = require("./routes/quizRoutes");
 const courseProgressRoutes = require("./routes/courseProgressRoutes");
 const cartRoutes = require('./routes/cartRoutes');
-
-
+const couponRoutes = require('./routes/couponRoutes')
+const paymentRoutes = require("./routes/paymentRoutes"); // الـ Routes الجديدة
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
@@ -22,7 +22,7 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
-// تحقق من المتغيرات بعد التحميل
+
 console.log('Env Check:', {
     port: process.env.PORT,
     cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -45,8 +45,8 @@ app.use("/groups", groupRoutes);
 app.use("/quizzes", quizRoutes);
 app.use("/course-progress", courseProgressRoutes);
 app.use('/cart', cartRoutes);
-
-
+app.use("/coupons", couponRoutes);
+app.use("/payment", paymentRoutes); // نقصرت المسار لـ /api بدل /api/payment
 swaggerDocs(app);
 
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));

@@ -25,6 +25,13 @@ exports.isAdmin = (req, res, next) => {
     next();
   };
 
+exports.isAdvertiser = (req, res, next) => {
+    if (!req.user || req.user.role !== "advertiser") {
+      return res.status(403).json({ message: "Access denied, only advertiser allowed" });
+    }
+    next();
+  };
+
 
   
 exports.isTeacher = (req, res, next) => {

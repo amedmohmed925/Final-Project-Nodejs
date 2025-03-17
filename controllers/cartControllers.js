@@ -87,7 +87,7 @@ const removeCart = async (req, res) => {
   
       await cart.save();
   
-      // إرجاع البيانات بنفس الهيكل اللي بيرجعه getCart
+
       await cart.populate("items.courseId", "title price featuredImage level");
       res.status(200).json({
         items: cart.items.map(item => ({
@@ -171,20 +171,16 @@ const checkout = async (req, res) => {
 };
 
 const applyCoupon = async (req, res) => {
-  const userId = req.user.id; // Extracted from JWT token
+  const userId = req.user.id;
   const { couponCode } = req.body;
 
   try {
-    // Input validation
     if (!couponCode || typeof couponCode !== "string") {
       return res.status(400).json({ message: "Valid coupon code is required" });
     }
 
     let cart = await Cart.findOne({ userId });
-    if (!cart) {
-      return res.status(404).json({ message: "Cart not found" });
-    }
-    if (cart.items.length === 0) {
+    if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty, cannot apply coupon" });
     }
 
@@ -195,17 +191,11 @@ const applyCoupon = async (req, res) => {
     if (new Date() > coupon.expiresAt) {
       return res.status(400).json({ message: "Coupon has expired" });
     }
-    if (coupon.minPurchase && cart.total < coupon.minPurchase) {
-      return res.status(400).json({
-        message: `Cart total must be at least ${coupon.minPurchase} to use this coupon`,
-      });
-    }
 
-    let discountPercentage = Math.min(coupon.discount, 100); // Cap at 100%
-    cart.discount = discountPercentage;
+    cart.discount = coupon.discount;
     calculateCartTotals(cart);
-
-    await cart.save();
+    coupon.usageCount += 1; // زيادة عدد الاستخدامات
+    await Promise.all([cart.save(), coupon.save()]);
 
     res.status(200).json({ message: "Coupon applied successfully", cart });
   } catch (error) {
