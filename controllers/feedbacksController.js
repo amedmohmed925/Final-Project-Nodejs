@@ -98,7 +98,7 @@ const deleteFeedback = async (req, res) => {
       return res.status(400).json({ error: "Feedback ID is required" });
     }
 
-    const feedback = await Feedback.findOneAndDelete({ _id, userId: req.user._id }); // Ensure only owner can delete
+    const feedback = await Feedback.findOneAndDelete({ _id, userId: req.user.id }); // Ensure only owner can delete
     if (!feedback) return res.status(404).json({ message: "Feedback not found or unauthorized" });
 
     res.json({ message: "Feedback deleted successfully" });
