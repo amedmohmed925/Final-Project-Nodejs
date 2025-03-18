@@ -5,6 +5,7 @@ const commentSchema = new mongoose.Schema({
   postId: { type: mongoose.Schema.Types.ObjectId, ref: "Post", required: true },
   content: { type: String, required: true },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: "User" }],
+  parentCommentId: { type: mongoose.Schema.Types.ObjectId, ref: "Comment" }, // للردود
 }, { timestamps: true });
 
 module.exports = mongoose.model("Comment", commentSchema);

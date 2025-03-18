@@ -1,7 +1,7 @@
 const User = require("../models/User");
 const Forum = require("../models/Forum");
 const Notification = require("../models/Notification");
-const Activity = require("../models/Activity"); 
+const Activity = require("../models/activityStatsModel"); 
 const Course = require('../models/Course');
 const bcrypt = require("bcrypt");
 
