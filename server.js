@@ -13,7 +13,8 @@ const quizRoutes = require("./routes/quizRoutes");
 const courseProgressRoutes = require("./routes/courseProgressRoutes");
 const cartRoutes = require('./routes/cartRoutes');
 const couponRoutes = require('./routes/couponRoutes')
-const paymentRoutes = require("./routes/paymentRoutes"); // الـ Routes الجديدة
+const paymentRoutes = require("./routes/paymentRoutes"); 
+const communityRoutes = require("./routes/communityRoutes"); 
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
@@ -47,6 +48,7 @@ app.use("/course-progress", courseProgressRoutes);
 app.use('/cart', cartRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/payment", paymentRoutes); // نقصرت المسار لـ /api بدل /api/payment
+app.use("/community", communityRoutes);
 swaggerDocs(app);
 
 app.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
