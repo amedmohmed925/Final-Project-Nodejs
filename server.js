@@ -20,7 +20,7 @@ const communityRoutes = require("./routes/communityRoutes");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
-const User = require("./models/userModel");
+const User = require("./models/User");
 
 const app = express();
 const server = http.createServer(app);
