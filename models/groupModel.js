@@ -11,7 +11,8 @@ const groupSchema = new mongoose.Schema({
   chatMessages: [{
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
     content: { type: String },
-    timestamp: { type: Date, default: Date.now }
+    timestamp: { type: Date, default: Date.now },
+    edited: { type: Boolean, default: false } 
   }],
 }, { timestamps: true });
 

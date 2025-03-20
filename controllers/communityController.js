@@ -95,8 +95,18 @@ exports.createComment = async (req, res) => {
     const post = await Post.findById(postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
 
-    const comment = new Comment({ userId: req.user.id, postId, content, parentCommentId, likes: [] });
+    const comment = new Comment({ 
+      userId: req.user.id, 
+      postId, 
+      content, 
+      parentCommentId, 
+      likes: [] 
+    });
     await comment.save();
+
+    // ملء بيانات userId قبل الإرجاع
+    const populatedComment = await Comment.findById(comment._id)
+      .populate("userId", "username firstName lastName profileImage");
 
     await new Notification({
       userId: post.userId,
@@ -111,7 +121,7 @@ exports.createComment = async (req, res) => {
       { upsert: true }
     );
 
-    res.status(201).json(comment);
+    res.status(201).json(populatedComment);
   } catch (err) {
     console.error("Error in createComment:", err);
     res.status(500).json({ message: "Internal Server Error", error: err.message });
@@ -123,6 +133,8 @@ exports.getComments = async (req, res) => {
     const comments = await Comment.find({ postId: req.params.postId })
       .populate("userId", "username firstName lastName profileImage")
       .sort({ createdAt: -1 });
+    
+    console.log("Comments with populated userId:", JSON.stringify(comments, null, 2));
     res.json(comments);
   } catch (err) {
     console.error("Error in getComments:", err);
@@ -231,6 +243,40 @@ exports.getGroups = async (req, res) => {
     res.status(500).json({ message: "Internal Server Error", error: err.message });
   }
 };
+
+exports.addGroupMember = async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (group.creatorId.toString() !== req.user.id) return res.status(403).json({ message: "Only creator can add members" });
+
+    if (!group.members.includes(userId)) {
+      group.members.push(userId);
+      group.pendingInvites = group.pendingInvites.filter(id => id.toString() !== userId);
+      await group.save();
+    }
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
+exports.removeGroupMember = async (req, res) => {
+  try {
+    const { groupId, userId } = req.body;
+    const group = await Group.findById(groupId);
+    if (!group) return res.status(404).json({ message: "Group not found" });
+    if (group.creatorId.toString() !== req.user.id) return res.status(403).json({ message: "Only creator can remove members" });
+
+    group.members = group.members.filter(id => id.toString() !== userId);
+    await group.save();
+    res.json(group);
+  } catch (err) {
+    res.status(500).json({ message: "Internal Server Error", error: err.message });
+  }
+};
+
 
 exports.createChatRoom = async (req, res) => {
   try {
