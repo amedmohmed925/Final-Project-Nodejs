@@ -9,6 +9,12 @@ const { isTeacher } = require('../middleware/authMiddleware');
 const { authenticateToken } = require("../middleware/authMiddleware");
 const upload = require('../multerConfig');
 
+
+
+
+router.get('/preview', courseController.getCoursePreview);         
+router.get('/preview/:id', courseController.getCoursePreviewById); 
+router.get('/details/:id', courseController.getCourseDetailsWithoutVideos);
 /**
  * @swagger
  * components:
@@ -518,5 +524,7 @@ router.get('/:id/groups', groupController.getAllGroups);
  *                 type: object
  */
 router.get('/:id/resources', resourceController.getResources);
+
+
 
 module.exports = router;

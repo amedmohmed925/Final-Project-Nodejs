@@ -3,6 +3,7 @@ const Resource = require('../models/Resource');
 const cloudinary = require('../cloudinaryConfig');
 const Category = require('../models/Category');
 const mailSender = require('../utils/mailSender'); 
+const Feedback = require('../models/Feedback')
 const fs = require('fs');
 
 exports.addCourse = async (req, res) => {
@@ -197,6 +198,255 @@ exports.getAllCourses = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+// 1. Endpoint to get course preview data with average rating
+exports.getCoursePreview = async (req, res) => {
+  try {
+    const courses = await Course.find()
+      .select('title description featuredImage price level ') // Select only needed fields
+      .populate('category', 'name'); // جلب اسم الفئة فقط
+    // Get average ratings for all courses
+    const coursesWithRatings = await Promise.all(
+      courses.map(async (course) => {
+        const feedbacks = await Feedback.find({ courseId: course.id });
+        const averageRating = feedbacks.length > 0 
+          ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+          : 0;
+        
+        return {
+          _id: course.id,
+          title: course.title,
+          description: course.description,
+          featuredImage: course.featuredImage,
+          price: course.price,
+          level: course.level,
+          category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
+          averageRating: Number(averageRating.toFixed(1)) 
+        };
+      })
+    );
+
+    res.status(200).json(coursesWithRatings);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Alternative version for single course preview
+exports.getCoursePreviewById = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .select('title description featuredImage price level');
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const feedbacks = await Feedback.find({ courseId: course._id });
+    const averageRating = feedbacks.length > 0 
+      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+      : 0;
+
+    const coursePreview = {
+      _id: course._id,
+      title: course.title,
+      description: course.description,
+      featuredImage: course.featuredImage,
+      price: course.price,
+      level: course.level,
+      averageRating: Number(averageRating.toFixed(1))
+    };
+
+    res.status(200).json(coursePreview);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 2. Endpoint to get course details without video URLs
+exports.getCourseDetailsWithoutVideos = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate('resources', '-courseId') // Exclude courseId from resources
+      .populate('category')
+      .populate('teacherId', 'firstName lastName email'); // Basic teacher info
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Create a modified version of sections without video URLs
+    const sectionsWithoutVideos = course.sections.map(section => ({
+      title: section.title,
+      lessons: section.lessons.map(lesson => ({
+        title: lesson.title,
+        content: lesson.content,
+        thumbnailUrl: lesson.thumbnailUrl,
+        quiz: lesson.quiz
+        // videoUrl is intentionally omitted
+      }))
+    }));
+
+    // Construct the response object with all fields except video URLs
+    const courseDetails = {
+      _id: course._id,
+      title: course.title,
+      description: course.description,
+      featuredImage: course.featuredImage,
+      sections: sectionsWithoutVideos,
+      resources: course.resources,
+      tags: course.tags,
+      teacherId: course.teacherId,
+      price: course.price,
+      level: course.level,
+      category: course.category,
+      whatYouWillLearn: course.whatYouWillLearn,
+      requirements: course.requirements,
+      targetAudience: course.targetAudience,
+      createdAt: course.createdAt,
+      updatedAt: course.updatedAt
+    };
+
+    res.status(200).json(courseDetails);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+
+// في courseController.js
+exports.getCoursePreview = async (req, res) => {
+  try {
+    const courses = await Course.find()
+      .select('title description featuredImage price level category') // أضفت category إلى الـ select
+      .populate('category', 'name'); // جلب اسم الفئة فقط
+
+    // تحويل الكورسات مع إضافة متوسط التقييم
+    const coursesWithRatings = await Promise.all(
+      courses.map(async (course) => {
+        const feedbacks = await Feedback.find({ courseId: course._id }); // تصحيح من course.id إلى course._id
+        const averageRating = feedbacks.length > 0 
+          ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+          : 0;
+        
+        return {
+          _id: course._id, // تصحيح من course.id إلى course._id
+          title: course.title,
+          description: course.description,
+          featuredImage: course.featuredImage,
+          price: course.price,
+          level: course.level,
+          category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
+          averageRating: Number(averageRating.toFixed(1))
+        };
+      })
+    );
+
+    res.status(200).json(coursesWithRatings);
+  } catch (err) {
+    res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
+  }
+};
+
+
+exports.getCoursePreviewById = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .select('title description featuredImage price level');
+    
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    const feedbacks = await Feedback.find({ courseId: course._id });
+    const averageRating = feedbacks.length > 0 
+      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+      : 0;
+
+    const coursePreview = {
+      _id: course._id,
+      title: course.title,
+      description: course.description,
+      featuredImage: course.featuredImage,
+      price: course.price,
+      level: course.level,
+      averageRating: Number(averageRating.toFixed(1))
+    };
+
+    res.status(200).json(coursePreview);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// 2. Endpoint to get course details without video URLs
+exports.getCourseDetailsWithoutVideos = async (req, res) => {
+  try {
+    const course = await Course.findById(req.params.id)
+      .populate('resources', '-courseId') // Exclude courseId from resources
+      .populate('category')
+      .populate('teacherId', 'firstName lastName email'); // Basic teacher info
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    // Create a modified version of sections without video URLs
+    const sectionsWithoutVideos = course.sections.map(section => ({
+      title: section.title,
+      lessons: section.lessons.map(lesson => ({
+        title: lesson.title,
+        content: lesson.content,
+        thumbnailUrl: lesson.thumbnailUrl,
+        quiz: lesson.quiz
+        // videoUrl is intentionally omitted
+      }))
+    }));
+
+    // Construct the response object with all fields except video URLs
+    const courseDetails = {
+      _id: course._id,
+      title: course.title,
+      description: course.description,
+      featuredImage: course.featuredImage,
+      sections: sectionsWithoutVideos,
+      resources: course.resources,
+      tags: course.tags,
+      teacherId: course.teacherId,
+      price: course.price,
+      level: course.level,
+      category: course.category,
+      whatYouWillLearn: course.whatYouWillLearn,
+      requirements: course.requirements,
+      targetAudience: course.targetAudience,
+      createdAt: course.createdAt,
+      updatedAt: course.updatedAt
+    };
+
+    res.status(200).json(courseDetails);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// Helper function to calculate average rating (can be used separately if needed)
+const getAverageRating = async (courseId) => {
+  try {
+    const feedbacks = await Feedback.find({ courseId });
+    if (feedbacks.length === 0) return 0;
+    
+    const totalRating = feedbacks.reduce((sum, fb) => sum + fb.rating, 0);
+    return Number((totalRating / feedbacks.length).toFixed(1));
+  } catch (err) {
+    console.error('Error calculating average rating:', err);
+    return 0;
+  }
+};
+
+
+
+
 
 exports.getCourseById = async (req, res) => {
   try {
