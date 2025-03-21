@@ -63,8 +63,9 @@ exports.addCourse = async (req, res) => {
       lessons: section.lessons.map((lesson) => {
         const lessonData = {
           ...lesson,
-          videoUrl: lessonVideos[videoIndex] ? `pending:${lessonVideos[videoIndex].filename}` : '',
-          thumbnailUrl: lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIndex].filename}` : '',
+          videoUrl: lessonVideos[videoIndex] ? `pending:${lessonVideos[videoIndex].filename}` : lesson.videoUrl || '',
+          thumbnailUrl: lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIndex].filename}` : lesson.thumbnailUrl || '',
+          duration: lesson.duration || 0,
         };
         if (lessonVideos[videoIndex]) videoIndex++;
         if (lessonThumbnails[thumbIndex]) thumbIndex++;
@@ -126,6 +127,7 @@ exports.addCourse = async (req, res) => {
                 chunk_size: 6000000,
               }).then(videoResult => {
                 newCourse.sections[sectionIndex].lessons[lessonIndex].videoUrl = videoResult.secure_url;
+                newCourse.sections[sectionIndex].lessons[lessonIndex].duration = Number((videoResult.duration / 60).toFixed(1)); // المدة بالدقائق من Cloudinary
                 if (fs.existsSync(lessonVideos[videoIdx].path)) fs.unlinkSync(lessonVideos[videoIdx].path);
                 videoIdx++;
               }).catch(uploadErr => {
@@ -204,32 +206,40 @@ exports.getAllCourses = async (req, res) => {
 exports.getCoursePreview = async (req, res) => {
   try {
     const courses = await Course.find()
-      .select('title description featuredImage price level ') // Select only needed fields
-      .populate('category', 'name'); // جلب اسم الفئة فقط
-    // Get average ratings for all courses
+      .select('title description featuredImage price level category sections')
+      .populate('category', 'name');
+
     const coursesWithRatings = await Promise.all(
       courses.map(async (course) => {
-        const feedbacks = await Feedback.find({ courseId: course.id });
+        const feedbacks = await Feedback.find({ courseId: course._id });
         const averageRating = feedbacks.length > 0 
           ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
           : 0;
-        
+
+        const totalMinutes = course.sections.reduce((sum, section) => {
+          return sum + section.lessons.reduce((lessonSum, lesson) => {
+            return lessonSum + (lesson.duration || 0);
+          }, 0);
+        }, 0);
+        const totalHours = Number((totalMinutes / 60).toFixed(1));
+
         return {
-          _id: course.id,
+          _id: course._id,
           title: course.title,
           description: course.description,
           featuredImage: course.featuredImage,
           price: course.price,
           level: course.level,
-          category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
-          averageRating: Number(averageRating.toFixed(1)) 
+          category: course.category ? course.category.name : "غير مصنف",
+          averageRating: Number(averageRating.toFixed(1)),
+          totalHours,
         };
       })
     );
 
     res.status(200).json(coursesWithRatings);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
   }
 };
 
@@ -237,7 +247,7 @@ exports.getCoursePreview = async (req, res) => {
 exports.getCoursePreviewById = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .select('title description featuredImage price level');
+      .select('title description featuredImage price level sections');
     
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
@@ -248,6 +258,13 @@ exports.getCoursePreviewById = async (req, res) => {
       ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
       : 0;
 
+    const totalMinutes = course.sections.reduce((sum, section) => {
+      return sum + section.lessons.reduce((lessonSum, lesson) => {
+        return lessonSum + (lesson.duration || 0);
+      }, 0);
+    }, 0);
+    const totalHours = Number((totalMinutes / 60).toFixed(1));
+
     const coursePreview = {
       _id: course._id,
       title: course.title,
@@ -255,7 +272,8 @@ exports.getCoursePreviewById = async (req, res) => {
       featuredImage: course.featuredImage,
       price: course.price,
       level: course.level,
-      averageRating: Number(averageRating.toFixed(1))
+      averageRating: Number(averageRating.toFixed(1)),
+      totalHours,
     };
 
     res.status(200).json(coursePreview);
@@ -268,27 +286,37 @@ exports.getCoursePreviewById = async (req, res) => {
 exports.getCourseDetailsWithoutVideos = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('resources', '-courseId') // Exclude courseId from resources
-      .populate('category')
-      .populate('teacherId', 'firstName lastName email'); // Basic teacher info
+      .populate('resources', '-courseId')
+      .populate('category', 'name')
+      .populate('teacherId', 'firstName lastName email');
 
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
 
-    // Create a modified version of sections without video URLs
+    const feedbacks = await Feedback.find({ courseId: course._id });
+    const averageRating = feedbacks.length > 0 
+      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+      : 0;
+
+    const totalMinutes = course.sections.reduce((sum, section) => {
+      return sum + section.lessons.reduce((lessonSum, lesson) => {
+        return lessonSum + (lesson.duration || 0);
+      }, 0);
+    }, 0);
+    const totalHours = Number((totalMinutes / 60).toFixed(1));
+
     const sectionsWithoutVideos = course.sections.map(section => ({
       title: section.title,
       lessons: section.lessons.map(lesson => ({
         title: lesson.title,
         content: lesson.content,
         thumbnailUrl: lesson.thumbnailUrl,
-        quiz: lesson.quiz
-        // videoUrl is intentionally omitted
-      }))
+        quiz: lesson.quiz || '',
+        duration: lesson.duration || 0, // عدد الدقائق لكل حلقة
+      })),
     }));
 
-    // Construct the response object with all fields except video URLs
     const courseDetails = {
       _id: course._id,
       title: course.title,
@@ -300,85 +328,86 @@ exports.getCourseDetailsWithoutVideos = async (req, res) => {
       teacherId: course.teacherId,
       price: course.price,
       level: course.level,
-      category: course.category,
+      category: course.category ? course.category.name : 'غير مصنف',
       whatYouWillLearn: course.whatYouWillLearn,
       requirements: course.requirements,
       targetAudience: course.targetAudience,
       createdAt: course.createdAt,
-      updatedAt: course.updatedAt
+      updatedAt: course.updatedAt,
+      averageRating: Number(averageRating.toFixed(1)),
+      totalHours, // عدد الساعات للكورس
     };
 
     res.status(200).json(courseDetails);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'حدث خطأ أثناء جلب تفاصيل الكورس: ' + err.message });
   }
 };
-
 
 // في courseController.js
-exports.getCoursePreview = async (req, res) => {
-  try {
-    const courses = await Course.find()
-      .select('title description featuredImage price level category') // أضفت category إلى الـ select
-      .populate('category', 'name'); // جلب اسم الفئة فقط
+// exports.getCoursePreview = async (req, res) => {
+//   try {
+//     const courses = await Course.find()
+//       .select('title description featuredImage price level category') // أضفت category إلى الـ select
+//       .populate('category', 'name'); // جلب اسم الفئة فقط
 
-    // تحويل الكورسات مع إضافة متوسط التقييم
-    const coursesWithRatings = await Promise.all(
-      courses.map(async (course) => {
-        const feedbacks = await Feedback.find({ courseId: course._id }); // تصحيح من course.id إلى course._id
-        const averageRating = feedbacks.length > 0 
-          ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-          : 0;
+//     // تحويل الكورسات مع إضافة متوسط التقييم
+//     const coursesWithRatings = await Promise.all(
+//       courses.map(async (course) => {
+//         const feedbacks = await Feedback.find({ courseId: course._id }); // تصحيح من course.id إلى course._id
+//         const averageRating = feedbacks.length > 0 
+//           ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+//           : 0;
         
-        return {
-          _id: course._id, // تصحيح من course.id إلى course._id
-          title: course.title,
-          description: course.description,
-          featuredImage: course.featuredImage,
-          price: course.price,
-          level: course.level,
-          category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
-          averageRating: Number(averageRating.toFixed(1))
-        };
-      })
-    );
+//         return {
+//           _id: course._id, // تصحيح من course.id إلى course._id
+//           title: course.title,
+//           description: course.description,
+//           featuredImage: course.featuredImage,
+//           price: course.price,
+//           level: course.level,
+//           category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
+//           averageRating: Number(averageRating.toFixed(1))
+//         };
+//       })
+//     );
 
-    res.status(200).json(coursesWithRatings);
-  } catch (err) {
-    res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
-  }
-};
+//     res.status(200).json(coursesWithRatings);
+//   } catch (err) {
+//     res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
+//   }
+// };
 
 
-exports.getCoursePreviewById = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id)
-      .select('title description featuredImage price level');
+// exports.getCoursePreviewById = async (req, res) => {
+//   try {
+//     const course = await Course.findById(req.params.id)
+//       .select('title description featuredImage price level');
     
-    if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
-    }
+//     if (!course) {
+//       return res.status(404).json({ message: 'Course not found' });
+//     }
 
-    const feedbacks = await Feedback.find({ courseId: course._id });
-    const averageRating = feedbacks.length > 0 
-      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-      : 0;
+//     const feedbacks = await Feedback.find({ courseId: course._id });
+//     const averageRating = feedbacks.length > 0 
+//       ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+//       : 0;
 
-    const coursePreview = {
-      _id: course._id,
-      title: course.title,
-      description: course.description,
-      featuredImage: course.featuredImage,
-      price: course.price,
-      level: course.level,
-      averageRating: Number(averageRating.toFixed(1))
-    };
+//     const coursePreview = {
+//       _id: course._id,
+//       title: course.title,
+//       description: course.description,
+//       featuredImage: course.featuredImage,
+//       price: course.price,
+//       level: course.level,
+//       averageRating: Number(averageRating.toFixed(1))
+//     };
 
-    res.status(200).json(coursePreview);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
+//     res.status(200).json(coursePreview);
+//   } catch (err) {
+//     res.status(500).json({ message: err.message });
+//   }
+// };
 
 exports.getCourseDetailsWithoutVideos = async (req, res) => {
   try {
@@ -543,6 +572,7 @@ exports.updateCourse = async (req, res) => {
           ...lesson,
           videoUrl: lesson.videoUrl || (lessonVideos[videoIndex] ? `pending:${lessonVideos[videoIndex].filename}` : ''),
           thumbnailUrl: lesson.thumbnailUrl || (lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIndex].filename}` : ''),
+          duration: lesson.duration || 0, // سيتم تحديثه من Cloudinary إذا تم رفع فيديو جديد
         };
         if (lessonVideos[videoIndex]) videoIndex++;
         if (lessonThumbnails[thumbIndex]) thumbIndex++;
@@ -608,6 +638,7 @@ exports.updateCourse = async (req, res) => {
                 chunk_size: 6000000,
               }).then(videoResult => {
                 updatedCourse.sections[sectionIndex].lessons[lessonIndex].videoUrl = videoResult.secure_url;
+                updatedCourse.sections[sectionIndex].lessons[lessonIndex].duration = Number((videoResult.duration / 60).toFixed(1)); // المدة بالدقائق من Cloudinary
                 if (fs.existsSync(lessonVideos[videoIdx].path)) fs.unlinkSync(lessonVideos[videoIdx].path);
                 videoIdx++;
               }).catch(uploadErr => {
@@ -633,8 +664,8 @@ exports.updateCourse = async (req, res) => {
         });
       });
 
-      await Promise.all(uploadPromises); // انتظار اكتمال جميع عمليات الرفع
-      await updatedCourse.save(); // حفظ التغييرات مرة واحدة
+      await Promise.all(uploadPromises);
+      await updatedCourse.save();
     }
   } catch (err) {
     console.log('Error in updateCourse:', err);

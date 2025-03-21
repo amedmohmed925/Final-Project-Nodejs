@@ -8,6 +8,7 @@ const lessonSchema = new mongoose.Schema({
   videoUrl: { type: String, default: '' },
   thumbnailUrl: { type: String, default: '' },
   quiz: { type: String, default: '' },
+  duration: { type: Number, default: 0 },
 });
 
 const sectionSchema = new mongoose.Schema({

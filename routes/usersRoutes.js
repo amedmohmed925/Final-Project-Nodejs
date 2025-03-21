@@ -53,7 +53,7 @@ router.get("/",authenticateToken, isAdmin, getAllUsers);
  *       404:
  *         description: User not found
  */
-router.get("/:id",authenticateToken, isAdmin, getUserById);
+router.get("/:id",authenticateToken, getUserById);
 
 /**
  * @swagger
