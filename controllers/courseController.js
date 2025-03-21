@@ -2,6 +2,7 @@ const Course = require('../models/Course');
 const Resource = require('../models/Resource');
 const cloudinary = require('../cloudinaryConfig');
 const Category = require('../models/Category');
+const mailSender = require('../utils/mailSender'); 
 const fs = require('fs');
 
 exports.addCourse = async (req, res) => {
@@ -149,9 +150,24 @@ exports.addCourse = async (req, res) => {
         });
       });
 
-      await Promise.all(uploadPromises); // انتظار اكتمال جميع عمليات الرفع
-      await newCourse.save(); // حفظ التغييرات مرة واحدة
+      await Promise.all(uploadPromises);
+      await newCourse.save(); 
+
+      const teacher = await User.findById(teacherId);
+      if (teacher && teacher.email && teacher.role === 'teacher') {
+        const emailTitle = 'Your Course is Ready!';
+        const emailBody = `
+          <h1>Congratulations, ${teacher.firstName} ${teacher.lastName}!</h1>
+          <p>Your course "<strong>${title}</strong>" has been successfully uploaded and is now ready.</p>
+          <p>You can now share it with your students or review it in your dashboard.</p>
+          <p>Best regards,<br>The Courses Team</p>
+        `;
+        await mailSender(teacher.email, emailTitle, emailBody);
+      } else {
+        console.log('Teacher not found or not a valid teacher');
+      }
     }
+    
   } catch (err) {
     console.log('Error in addCourse:', err);
     if (req.files) {
