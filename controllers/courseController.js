@@ -380,31 +380,34 @@ exports.getCoursePreviewById = async (req, res) => {
   }
 };
 
-// 2. Endpoint to get course details without video URLs
 exports.getCourseDetailsWithoutVideos = async (req, res) => {
   try {
     const course = await Course.findById(req.params.id)
-      .populate('resources', '-courseId') // Exclude courseId from resources
-      .populate('category')
-      .populate('teacherId', 'firstName lastName email'); // Basic teacher info
+      .populate('resources', '-courseId') // استبعاد courseId من الموارد
+      .populate('category', 'name') // جلب اسم الفئة
+      .populate('teacherId', 'firstName lastName email'); // معلومات المعلم الأساسية
 
     if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
+      return res.status(404).json({ message: 'الكورس غير موجود' });
     }
-
-    // Create a modified version of sections without video URLs
+    const feedbacks = await Feedback.find({ courseId: course._id });
+    const averageRating = feedbacks.length > 0 
+      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+      : 0;
+    // تعديل الأقسام لاستبعاد videoUrl
     const sectionsWithoutVideos = course.sections.map(section => ({
       title: section.title,
       lessons: section.lessons.map(lesson => ({
         title: lesson.title,
         content: lesson.content,
         thumbnailUrl: lesson.thumbnailUrl,
-        quiz: lesson.quiz
-        // videoUrl is intentionally omitted
+        quiz: lesson.quiz || '',
+
+        // videoUrl مستبعد عمدًا
       }))
     }));
 
-    // Construct the response object with all fields except video URLs
+    // بناء كائن الاستجابة مع كل الحقول باستثناء videoUrl
     const courseDetails = {
       _id: course._id,
       title: course.title,
@@ -416,20 +419,21 @@ exports.getCourseDetailsWithoutVideos = async (req, res) => {
       teacherId: course.teacherId,
       price: course.price,
       level: course.level,
-      category: course.category,
+      category: course.category ? course.category.name : 'غير مصنف', // اسم الفئة
       whatYouWillLearn: course.whatYouWillLearn,
       requirements: course.requirements,
       targetAudience: course.targetAudience,
       createdAt: course.createdAt,
-      updatedAt: course.updatedAt
+      updatedAt: course.updatedAt,
+              averageRating: Number(averageRating.toFixed(1))
+
     };
 
     res.status(200).json(courseDetails);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'حدث خطأ أثناء جلب تفاصيل الكورس: ' + err.message });
   }
 };
-
 // Helper function to calculate average rating (can be used separately if needed)
 const getAverageRating = async (courseId) => {
   try {
