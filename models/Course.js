@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const Quiz = require('./Quiz'); // استيراد سكيما الكويز
-const Resource = require('./Resource'); // استيراد سكيما الموارد
+const Quiz = require('./Quiz'); // Assuming this exists
+const Resource = require('./Resource'); // Assuming this exists
 
 const lessonSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -11,21 +11,24 @@ const lessonSchema = new mongoose.Schema({
 });
 
 const sectionSchema = new mongoose.Schema({
-  title: { type: String, required: true }, // عنوان القسم مثل "HTML Heading"
-  lessons: [lessonSchema], // قائمة الحلقات داخل القسم
+  title: { type: String, required: true },
+  lessons: [lessonSchema],
 });
 
 const courseSchema = new mongoose.Schema({
   title: { type: String, required: true },
   description: { type: String, required: true },
   featuredImage: { type: String },
-  sections: [sectionSchema], // الأقسام تحل محل الحلقات المباشرة
+  sections: [sectionSchema],
   resources: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Resource' }],
   tags: [{ type: String }],
   teacherId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   price: { type: Number, required: true, min: 0 },
   level: { type: String, enum: ['Beginner', 'Professional'], required: true },
-  category: { type: String, required: true },
+  category: { type: mongoose.Schema.Types.ObjectId, ref: 'Category', required: true }, 
+  whatYouWillLearn: [{ type: String }], 
+  requirements: [{ type: String }], 
+  targetAudience: [{ type: String }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Course', courseSchema);

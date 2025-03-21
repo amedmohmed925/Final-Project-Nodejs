@@ -17,6 +17,7 @@ const cartRoutes = require('./routes/cartRoutes');
 const couponRoutes = require('./routes/couponRoutes');
 const paymentRoutes = require("./routes/paymentRoutes"); 
 const communityRoutes = require("./routes/communityRoutes"); 
+const categoryRoutes = require("./routes/categoryRoutes"); 
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
@@ -58,6 +59,7 @@ app.use('/cart', cartRoutes);
 app.use("/coupons", couponRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/community", communityRoutes);
+app.use('/categories', categoryRoutes);
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
