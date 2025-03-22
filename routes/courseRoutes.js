@@ -15,6 +15,7 @@ const upload = require('../multerConfig');
 router.get('/preview', courseController.getCoursePreview);         
 router.get('/preview/:id', courseController.getCoursePreviewById); 
 router.get('/details/:id', courseController.getCourseDetailsWithoutVideos);
+router.get('/most-viewed', courseController.getMostViewedCourses); 
 /**
  * @swagger
  * components:

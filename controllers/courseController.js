@@ -233,6 +233,7 @@ exports.getCoursePreview = async (req, res) => {
           category: course.category ? course.category.name : "غير مصنف",
           averageRating: Number(averageRating.toFixed(1)),
           totalHours,
+          views: course.views, 
         };
       })
     );
@@ -243,45 +244,91 @@ exports.getCoursePreview = async (req, res) => {
   }
 };
 
-// Alternative version for single course preview
-exports.getCoursePreviewById = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id)
-      .select('title description featuredImage price level sections');
-    
-    if (!course) {
-      return res.status(404).json({ message: 'Course not found' });
+
+  exports.getMostViewedCourses = async (req, res) => {
+    try {
+      const limit = parseInt(req.query.limit) || 10;
+      const courses = await Course.find()
+        .sort({ views: -1 }) 
+        .limit(limit)
+        .select('title description featuredImage price level category views')
+        .populate('category', 'name');
+
+      if (!courses.length) {
+        return res.status(404).json({ message: 'No courses found' });
+      }
+
+      const coursesWithRatings = await Promise.all(
+        courses.map(async (course) => {
+          const feedbacks = await Feedback.find({ courseId: course._id });
+          const averageRating = feedbacks.length > 0
+            ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length
+            : 0;
+
+          return {
+            _id: course._id,
+            title: course.title,
+            description: course.description,
+            featuredImage: course.featuredImage,
+            price: course.price,
+            level: course.level,
+            category: course.category ? course.category.name : 'غير مصنف',
+            views: course.views,
+            averageRating: Number(averageRating.toFixed(1)),
+          };
+        })
+      );
+
+      res.status(200).json(coursesWithRatings);
+    } catch (err) {
+      res.status(500).json({ message: 'حدث خطأ أثناء جلب الكورسات الأكثر مشاهدة: ' + err.message });
     }
+  };
 
-    const feedbacks = await Feedback.find({ courseId: course._id });
-    const averageRating = feedbacks.length > 0 
-      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-      : 0;
 
-    const totalMinutes = course.sections.reduce((sum, section) => {
-      return sum + section.lessons.reduce((lessonSum, lesson) => {
-        return lessonSum + (lesson.duration || 0);
+  // Alternative version for single course preview
+  exports.getCoursePreviewById = async (req, res) => {
+    try {
+      const course = await Course.findById(req.params.id)
+        .select('title description featuredImage price level sections views'); // أضفنا views
+
+      if (!course) {
+        return res.status(404).json({ message: 'Course not found' });
+      }
+
+      // زيادة عدد المشاهدات
+      course.views += 1;
+      await course.save();
+
+      const feedbacks = await Feedback.find({ courseId: course._id });
+      const averageRating = feedbacks.length > 0 
+        ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
+        : 0;
+
+      const totalMinutes = course.sections.reduce((sum, section) => {
+        return sum + section.lessons.reduce((lessonSum, lesson) => {
+          return lessonSum + (lesson.duration || 0);
+        }, 0);
       }, 0);
-    }, 0);
-    const totalHours = Number((totalMinutes / 60).toFixed(1));
+      const totalHours = Number((totalMinutes / 60).toFixed(1));
 
-    const coursePreview = {
-      _id: course._id,
-      title: course.title,
-      description: course.description,
-      featuredImage: course.featuredImage,
-      price: course.price,
-      level: course.level,
-      averageRating: Number(averageRating.toFixed(1)),
-      totalHours,
-    };
+      const coursePreview = {
+        _id: course._id,
+        title: course.title,
+        description: course.description,
+        featuredImage: course.featuredImage,
+        price: course.price,
+        level: course.level,
+        averageRating: Number(averageRating.toFixed(1)),
+        totalHours,
+        views: course.views, // إرجاع عدد المشاهدات
+      };
 
-    res.status(200).json(coursePreview);
-  } catch (err) {
-    res.status(500).json({ message: err.message });
-  }
-};
-
+      res.status(200).json(coursePreview);
+    } catch (err) {
+      res.status(500).json({ message: err.message });
+    }
+  };
 // 2. Endpoint to get course details without video URLs
 exports.getCourseDetailsWithoutVideos = async (req, res) => {
   try {
@@ -293,6 +340,10 @@ exports.getCourseDetailsWithoutVideos = async (req, res) => {
     if (!course) {
       return res.status(404).json({ message: 'Course not found' });
     }
+
+    // زيادة عدد المشاهدات وحفظ التغيير
+    course.views += 1;
+    await course.save();
 
     const feedbacks = await Feedback.find({ courseId: course._id });
     const averageRating = feedbacks.length > 0 
@@ -335,7 +386,8 @@ exports.getCourseDetailsWithoutVideos = async (req, res) => {
       createdAt: course.createdAt,
       updatedAt: course.updatedAt,
       averageRating: Number(averageRating.toFixed(1)),
-      totalHours, // عدد الساعات للكورس
+      totalHours,
+      views: course.views,
     };
 
     res.status(200).json(courseDetails);
@@ -344,125 +396,9 @@ exports.getCourseDetailsWithoutVideos = async (req, res) => {
   }
 };
 
-// في courseController.js
-// exports.getCoursePreview = async (req, res) => {
-//   try {
-//     const courses = await Course.find()
-//       .select('title description featuredImage price level category') // أضفت category إلى الـ select
-//       .populate('category', 'name'); // جلب اسم الفئة فقط
-
-//     // تحويل الكورسات مع إضافة متوسط التقييم
-//     const coursesWithRatings = await Promise.all(
-//       courses.map(async (course) => {
-//         const feedbacks = await Feedback.find({ courseId: course._id }); // تصحيح من course.id إلى course._id
-//         const averageRating = feedbacks.length > 0 
-//           ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-//           : 0;
-        
-//         return {
-//           _id: course._id, // تصحيح من course.id إلى course._id
-//           title: course.title,
-//           description: course.description,
-//           featuredImage: course.featuredImage,
-//           price: course.price,
-//           level: course.level,
-//           category: course.category ? course.category.name : "غير مصنف", // اسم الفئة
-//           averageRating: Number(averageRating.toFixed(1))
-//         };
-//       })
-//     );
-
-//     res.status(200).json(coursesWithRatings);
-//   } catch (err) {
-//     res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
-//   }
-// };
 
 
-// exports.getCoursePreviewById = async (req, res) => {
-//   try {
-//     const course = await Course.findById(req.params.id)
-//       .select('title description featuredImage price level');
-    
-//     if (!course) {
-//       return res.status(404).json({ message: 'Course not found' });
-//     }
 
-//     const feedbacks = await Feedback.find({ courseId: course._id });
-//     const averageRating = feedbacks.length > 0 
-//       ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-//       : 0;
-
-//     const coursePreview = {
-//       _id: course._id,
-//       title: course.title,
-//       description: course.description,
-//       featuredImage: course.featuredImage,
-//       price: course.price,
-//       level: course.level,
-//       averageRating: Number(averageRating.toFixed(1))
-//     };
-
-//     res.status(200).json(coursePreview);
-//   } catch (err) {
-//     res.status(500).json({ message: err.message });
-//   }
-// };
-
-exports.getCourseDetailsWithoutVideos = async (req, res) => {
-  try {
-    const course = await Course.findById(req.params.id)
-      .populate('resources', '-courseId') // استبعاد courseId من الموارد
-      .populate('category', 'name') // جلب اسم الفئة
-      .populate('teacherId', 'firstName lastName email'); // معلومات المعلم الأساسية
-
-    if (!course) {
-      return res.status(404).json({ message: 'الكورس غير موجود' });
-    }
-    const feedbacks = await Feedback.find({ courseId: course._id });
-    const averageRating = feedbacks.length > 0 
-      ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length 
-      : 0;
-    // تعديل الأقسام لاستبعاد videoUrl
-    const sectionsWithoutVideos = course.sections.map(section => ({
-      title: section.title,
-      lessons: section.lessons.map(lesson => ({
-        title: lesson.title,
-        content: lesson.content,
-        thumbnailUrl: lesson.thumbnailUrl,
-        quiz: lesson.quiz || '',
-
-        // videoUrl مستبعد عمدًا
-      }))
-    }));
-
-    // بناء كائن الاستجابة مع كل الحقول باستثناء videoUrl
-    const courseDetails = {
-      _id: course._id,
-      title: course.title,
-      description: course.description,
-      featuredImage: course.featuredImage,
-      sections: sectionsWithoutVideos,
-      resources: course.resources,
-      tags: course.tags,
-      teacherId: course.teacherId,
-      price: course.price,
-      level: course.level,
-      category: course.category ? course.category.name : 'غير مصنف', // اسم الفئة
-      whatYouWillLearn: course.whatYouWillLearn,
-      requirements: course.requirements,
-      targetAudience: course.targetAudience,
-      createdAt: course.createdAt,
-      updatedAt: course.updatedAt,
-              averageRating: Number(averageRating.toFixed(1))
-
-    };
-
-    res.status(200).json(courseDetails);
-  } catch (err) {
-    res.status(500).json({ message: 'حدث خطأ أثناء جلب تفاصيل الكورس: ' + err.message });
-  }
-};
 // Helper function to calculate average rating (can be used separately if needed)
 const getAverageRating = async (courseId) => {
   try {

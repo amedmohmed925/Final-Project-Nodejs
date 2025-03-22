@@ -1,3 +1,4 @@
+// models/Course.js
 const mongoose = require('mongoose');
 const Quiz = require('./Quiz'); // Assuming this exists
 const Resource = require('./Resource'); // Assuming this exists
@@ -30,6 +31,7 @@ const courseSchema = new mongoose.Schema({
   whatYouWillLearn: [{ type: String }], 
   requirements: [{ type: String }], 
   targetAudience: [{ type: String }],
+  views: { type: Number, default: 0 }, // حقل جديد لعدد المشاهدات
 }, { timestamps: true });
 
 module.exports = mongoose.model('Course', courseSchema);
