@@ -10,23 +10,12 @@ const getAllFeedbacks = async (req, res) => {
   }
 };
 
-const getAverageRating = async (courseId) => {
-  try {
-    const feedbacks = await Feedback.find({ courseId });
-    if (feedbacks.length === 0) return 0;
-    
-    const totalRating = feedbacks.reduce((sum, fb) => sum + fb.rating, 0);
-    return Number((totalRating / feedbacks.length).toFixed(1));
-  } catch (err) {
-    console.error('Error calculating average rating:', err);
-    return 0;
-  }
-};
+
 const getFeedbacksByCourseId = async (req, res) => {
   try {
     console.log("Feedback model:", Feedback); // Debug: Check if Feedback is defined
     console.log("Course ID:", req.params.courseId);
-    const feedbacks = await Feedback.find({ courseId: req.params.courseId }).populate("userId", "firstName lastName");
+    const feedbacks = await Feedback.find({ courseId: req.params.courseId }).populate("userId", "firstName lastName profileImage");
     res.json(feedbacks);
   } catch (err) {
     res.status(500).json({ error: err.message });

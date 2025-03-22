@@ -120,28 +120,28 @@ let getCoursesByUser = async (req, res) => {
 };
 
 let getUserFeedbacks = async (req, res) => {
-  let { id } = req.params;
+  // let { id } = req.params;
 
-  try {
-    let user = await User.findById(id);
+  // try {
+  //   let user = await User.findById(id);
 
-    if (!user) {
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-    }
+  //   if (!user) {
+  //     return res
+  //       .status(404)
+  //       .json({ success: false, message: "User not found" });
+  //   }
 
-    res.status(200).json({
-      success: true,
-      feedbacks: user.feedbacks || [],
-    });
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Error fetching user feedbacks",
-      error,
-    });
-  }
+  //   res.status(200).json({
+  //     success: true,
+  //     feedbacks: user.feedbacks || [],
+  //   });
+  // } catch (error) {
+  //   res.status(500).json({
+  //     success: false,
+  //     message: "Error fetching user feedbacks",
+  //     error,
+  //   });
+  // }
 };
 
 let getUserForums = async (req, res) => {
