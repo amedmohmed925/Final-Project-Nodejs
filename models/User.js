@@ -8,8 +8,11 @@ const userSchema = new mongoose.Schema({
     email: { type: String, required: true },
     dob: { type: Date, required: true },
     role: { type: String, enum: ["teacher", "student", "admin", "advertiser"], required: true },
-    isVerified: { type: Boolean, default: false }, 
-
-}, {timestamps: true} );
+    isVerified: { type: Boolean, default: false },
+    profileImage: { 
+        type: String, 
+        default: null 
+    },
+}, { timestamps: true });
 
 module.exports = mongoose.model("User", userSchema);

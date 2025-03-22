@@ -1,9 +1,60 @@
-const User = require("../models/User");
-const Forum = require("../models/Forum");
+const cloudinary = require('../cloudinaryConfig'); 
+const User = require("../models/User");const Forum = require("../models/Forum");
 const Notification = require("../models/Notification");
 const Activity = require("../models/activityStatsModel"); 
 const Course = require('../models/Course');
 const bcrypt = require("bcrypt");
+
+
+
+let updateProfileImage = async (req, res) => {
+  let { id } = req.params;
+
+  try {
+
+    if (!req.file) {
+      return res.status(400).json({
+        success: false,
+        message: "No image file provided"
+      });
+    }
+
+    let user = await User.findById(id);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+
+    const result = await cloudinary.uploader.upload(req.file.path, {
+      folder: "profile_images",
+      transformation: [
+        { width: 200, height: 200, crop: "fill" }
+      ]
+    });
+
+
+    user.profileImage = result.secure_url;
+    await user.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Profile image updated successfully",
+      profileImage: user.profileImage
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error updating profile image",
+      error
+    });
+  }
+};
+
+
 
 let getAllUsers = async (req, res) => {
   try {
@@ -285,5 +336,6 @@ module.exports = {
   getUserActivities,
   editUserInfo,
   deleteUser,
-  getAllTeachers, // إضافة الدالة الجديدة إلى الصادرات
+  getAllTeachers,
+  updateProfileImage
 };

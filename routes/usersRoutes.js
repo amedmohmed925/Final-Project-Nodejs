@@ -9,10 +9,31 @@ const {
     getUserActivities,
     editUserInfo,
     deleteUser,
-    getAllTeachers
+    getAllTeachers,
+    updateProfileImage
 } = require("../controllers/userController");
 
 const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
+const multer = require('multer');
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, 'uploads/');
+    },
+    filename: function (req, file, cb) {
+      cb(null, Date.now() + '-' + file.originalname);
+    }
+  });
+  
+  const upload = multer({ 
+    storage: storage,
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype.startsWith('image/')) {
+        cb(null, true);
+      } else {
+        cb(new Error('Only images are allowed'));
+      }
+    }
+  });
 
 const router = express.Router();
 router.get("/teachers", getAllTeachers); // مسار جديد لجلب المعلمين
@@ -34,6 +55,49 @@ router.get("/teachers", getAllTeachers); // مسار جديد لجلب المع�
  *         description: List of all users
  */
 router.get("/",authenticateToken, isAdmin, getAllUsers);
+
+
+/**
+ * @swagger
+ * /users/{id}/profile-image:
+ *   put:
+ *     summary: Update user profile image (requires authentication)
+ *     tags: [Users]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     requestBody:
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               image:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       200:
+ *         description: Profile image updated successfully
+ *       400:
+ *         description: No image file provided
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: User not found
+ */
+router.put("/:id/profile-image", 
+    authenticateToken, 
+    upload.single('image'), 
+    updateProfileImage
+  );
+  
+  module.exports = router;
+
 
 /**
  * @swagger
