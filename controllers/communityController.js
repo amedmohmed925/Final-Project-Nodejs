@@ -63,8 +63,31 @@ exports.likePost = async (req, res) => {
   try {
     const post = await Post.findById(req.params.postId);
     if (!post) return res.status(404).json({ message: "Post not found" });
-    if (!post.likes.includes(req.user.id)) {
-      post.likes.push(req.user.id);
+
+    const userId = req.user.id;
+    const alreadyLiked = post.likes.includes(userId);
+
+    if (alreadyLiked) {
+      // إذا كان اليوزر عامل لايك بالفعل، نحذف اللايك
+      post.likes = post.likes.filter((id) => id.toString() !== userId.toString());
+      await post.save();
+
+      // حذف الإشعار المرتبط باللايك لو موجود
+      await Notification.deleteOne({
+        userId: post.userId,
+        type: "like",
+        relatedId: post._id,
+        message: `${req.user.username} liked your post`,
+      });
+
+      await ActivityStats.findOneAndUpdate(
+        { userId: req.user.id },
+        { $inc: { likesGiven: -1 }, lastActive: Date.now() },
+        { upsert: true }
+      );
+    } else {
+      // إذا كان اليوزر مش عامل لايك، نضيف اللايك
+      post.likes.push(userId);
       await post.save();
 
       await new Notification({
@@ -80,6 +103,7 @@ exports.likePost = async (req, res) => {
         { upsert: true }
       );
     }
+
     res.json(post);
   } catch (err) {
     console.error("Error in likePost:", err);

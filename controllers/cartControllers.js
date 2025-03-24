@@ -1,14 +1,11 @@
+// controllers/cartController.js
 const Coupon = require("../models/Coupon");
 const Cart = require("../models/Cart");
+const CouponUsage = require("../models/CouponUsage"); // استيراد النموذج الجديد
 const Course = require("../models/Course");
 const mongoose = require("mongoose");
 
-// Helper function to recalculate totals
-const calculateCartTotals = (cart) => {
-  cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
-  cart.finalTotal = cart.total - (cart.total * (cart.discount / 100));
-  return cart;
-};
+
 
 const addCart = async (req, res) => {
   const userId = req.user.id; // Extracted from JWT token
@@ -136,12 +133,29 @@ const getCart = async (req, res) => {
 };
 
 const checkout = async (req, res) => {
-  const userId = req.user.id; // Extracted from JWT token
+  const userId = req.user.id;
 
   try {
     let cart = await Cart.findOne({ userId });
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty" });
+    }
+
+    // إذا كان هناك كوبون مطبق
+    if (cart.couponCode) {
+      const coupon = await Coupon.findOne({ code: cart.couponCode });
+      if (coupon) {
+        // زيادة عدد الاستخدامات
+        coupon.usageCount += 1;
+
+        // تسجيل استخدام الكوبون للمستخدم
+        const newCouponUsage = new CouponUsage({
+          userId,
+          couponCode: cart.couponCode,
+        });
+
+        await Promise.all([coupon.save(), newCouponUsage.save()]);
+      }
     }
 
     // Mark items as purchased (for tracking purposes)
@@ -153,13 +167,11 @@ const checkout = async (req, res) => {
       purchaseDate: new Date(),
     }));
 
-    // Here you could save purchasedItems to a "Purchases" collection
-    // e.g., await Purchase.insertMany(purchasedItems);
-
     // Reset cart
     cart.items = [];
     cart.total = 0;
     cart.discount = 0;
+    cart.couponCode = null; // إعادة تعيين الكوبون
     cart.finalTotal = 0;
 
     await cart.save();
@@ -168,6 +180,13 @@ const checkout = async (req, res) => {
   } catch (error) {
     res.status(500).json({ message: "Checkout failed", error: error.message });
   }
+};
+
+
+const calculateCartTotals = (cart) => {
+  cart.total = cart.items.reduce((sum, item) => sum + item.price, 0);
+  cart.finalTotal = cart.total - (cart.total * (cart.discount / 100));
+  return cart;
 };
 
 const applyCoupon = async (req, res) => {
@@ -184,6 +203,10 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json({ message: "Cart is empty, cannot apply coupon" });
     }
 
+    if (cart.couponCode) {
+      return res.status(400).json({ message: "A coupon is already applied to this cart" });
+    }
+
     const coupon = await Coupon.findOne({ code: couponCode });
     if (!coupon) {
       return res.status(400).json({ message: "Invalid coupon code" });
@@ -192,17 +215,23 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json({ message: "Coupon has expired" });
     }
 
+    const couponUsage = await CouponUsage.findOne({ userId, couponCode });
+    if (couponUsage) {
+      return res.status(400).json({ message: "You have already used this coupon" });
+    }
+
+    // تطبيق الكوبون دون زيادة usageCount أو تسجيل CouponUsage
     cart.discount = coupon.discount;
+    cart.couponCode = couponCode;
     calculateCartTotals(cart);
-    coupon.usageCount += 1; // زيادة عدد الاستخدامات
-    await Promise.all([cart.save(), coupon.save()]);
+
+    await cart.save();
 
     res.status(200).json({ message: "Coupon applied successfully", cart });
   } catch (error) {
     res.status(500).json({ message: "Failed to apply coupon", error: error.message });
   }
 };
-
 module.exports = {
   addCart,
   removeCart,

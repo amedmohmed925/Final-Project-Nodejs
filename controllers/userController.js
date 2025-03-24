@@ -282,6 +282,13 @@ let deleteUser = async (req, res) => {
         .json({ success: false, message: "User not found" });
     }
 
+
+    if (user.role === "admin") {
+      return res
+        .status(403)
+        .json({ success: false, message: "Admins cannot delete their own accounts" });
+    }
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
       return res
@@ -300,7 +307,6 @@ let deleteUser = async (req, res) => {
       .json({ success: false, message: "Error deleting user", error });
   }
 };
-
 // دالة جديدة لجلب جميع المعلمين
 let getAllTeachers = async (req, res) => {
   try {

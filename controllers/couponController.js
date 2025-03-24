@@ -49,7 +49,7 @@ const getAdvertiserCoupons = async (req, res) => {
     const coupons = await Coupon.find({ advertiserId });
     const couponsWithUsage = await Promise.all(
       coupons.map(async (coupon) => {
-        const usageCount = await Cart.countDocuments({ discount: { $gt: 0 }, "items.courseId": { $exists: true } });
+        const usageCount = await Cart.countDocuments({ couponCode: coupon.code });
         return { ...coupon._doc, usageCount };
       })
     );
@@ -60,7 +60,6 @@ const getAdvertiserCoupons = async (req, res) => {
   }
 };
 
-// جلب تقرير للأدمن (كل المعلنين وكوبوناتهم وعمليات الشراء)
 const getAdminCouponReport = async (req, res) => {
   try {
     if (req.user.role !== "admin") {
@@ -73,7 +72,7 @@ const getAdminCouponReport = async (req, res) => {
         const coupons = await Coupon.find({ advertiserId: advertiser._id });
         const couponDetails = await Promise.all(
           coupons.map(async (coupon) => {
-            const usageCount = await Cart.countDocuments({ discount: { $gt: 0 }, "items.courseId": { $exists: true } });
+            const usageCount = await Cart.countDocuments({ couponCode: coupon.code });
             return { code: coupon.code, usageCount };
           })
         );
