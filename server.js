@@ -18,11 +18,11 @@ const couponRoutes = require('./routes/couponRoutes');
 const paymentRoutes = require("./routes/paymentRoutes"); 
 const communityRoutes = require("./routes/communityRoutes"); 
 const categoryRoutes = require("./routes/categoryRoutes"); 
+const notificationRoutes = require("./routes/notificationRoutes"); // إضافة الراوتر
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
 const User = require("./models/User");
-
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -60,6 +60,7 @@ app.use("/coupons", couponRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/community", communityRoutes);
 app.use('/categories', categoryRoutes);
+app.use("/notifications", notificationRoutes); // إضافة مسار الإشعارات
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
