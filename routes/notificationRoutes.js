@@ -7,6 +7,5 @@ const { createNotification, getUserNotifications, markNotificationAsRead, delete
 router.post("/create", authenticateToken, isAdmin, createNotification);
 router.get("/my-notifications", authenticateToken, getUserNotifications);
 router.put("/mark-read/:notificationId", authenticateToken, markNotificationAsRead);
-router.delete("/delete/:notificationId", authenticateToken, deleteNotification); // مسار الحذف
-
+router.delete("/delete/:notificationId", authenticateToken, deleteNotification); 
 module.exports = router;
