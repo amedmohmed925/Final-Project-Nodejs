@@ -22,49 +22,81 @@ const generateRefreshToken = (user) => {
 };
 
 exports.register = async (req, res) => {
-    try {
-      console.log("Request Body:", req.body);
+  try {
+    console.log("Request Body:", req.body);
 
-      const { username, password, confirm_password, firstName, lastName, email, dob, role } = req.body;
+    const { 
+      username, 
+      password, 
+      confirm_password, 
+      firstName, 
+      lastName, 
+      email, 
+      dob, 
+      role, 
+      certificates, 
+      graduationYear, 
+      university, 
+      major, 
+      bio, 
+      socialMedia 
+    } = req.body;
 
-      if (password !== confirm_password) {
-        return res.status(400).json({ message: "Passwords do not match" });
-      }
-
-      const existingEmail = await User.findOne({ email });
-      console.log("Existing Email:", existingEmail);
-      if (existingEmail) {
-        return res.status(400).json({ message: "Email already exists" });
-      }
-
-      const existingUser = await User.findOne({ username });
-      console.log("Existing User:", existingUser);
-      if (existingUser) {
-        return res.status(400).json({ message: "Username already exists" });
-      }
-
-      const hashedPassword = await bcrypt.hash(password, 10);
-      const newUser = new User({
-        username,
-        password: hashedPassword,
-        firstName,
-        lastName,
-        email,
-        dob,
-        role,
-        isVerified: false,
-      });
-
-      await newUser.save();
-
-      const otp = Math.floor(100000 + Math.random() * 900000).toString();
-      await OTP.create({ email, otp });
-
-      res.status(201).json({ message: "User registered successfully. Please check your email for OTP." });
-    } catch (error) {
-      console.error("Error in register:", error);
-      res.status(500).json({ message: "Server error", error: error.message });
+    if (password !== confirm_password) {
+      return res.status(400).json({ message: "Passwords do not match" });
     }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return res.status(400).json({ message: "Email already exists" });
+    }
+
+    const existingUser = await User.findOne({ username });
+    if (existingUser) {
+      return res.status(400).json({ message: "Username already exists" });
+    }
+
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const newUser = new User({
+      username,
+      password: hashedPassword,
+      firstName,
+      lastName,
+      email,
+      dob,
+      role,
+      isVerified: false,
+    });
+
+    // Add teacher-specific fields if role is "teacher"
+    if (role === "teacher") {
+      if (!certificates || !graduationYear || !university || !major) {
+        return res.status(400).json({ message: "All teacher-specific fields are required" });
+      }
+      newUser.certificates = certificates;
+      newUser.graduationYear = graduationYear;
+      newUser.university = university;
+      newUser.major = major;
+      newUser.bio = bio || "";
+      newUser.socialMedia = socialMedia || {};
+    }
+
+    await newUser.save();
+
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    await OTP.create({ email, otp });
+
+    await mailSender(
+      email,
+      "Verify Your Account",
+      `<h1>Welcome!</h1><p>Your OTP code is: ${otp}</p>`
+    );
+
+    res.status(201).json({ message: "User registered successfully. Please check your email for OTP." });
+  } catch (error) {
+    console.error("Error in register:", error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
 };
 exports.login = async (req, res) => {
   try {
