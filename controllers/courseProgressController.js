@@ -5,20 +5,26 @@ const getProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
     const userId = req.user.id;
-    console.log("User in getProgress:", req.user); // تسجيل إضافي
-    const progress = await CourseProgress.findOne({ userId, courseId }).populate("courseId", "title sections");
-    if (!progress) {
-      return res.status(200).json({ message: "No progress yet", progress: null });
-    }
 
-    res.status(200).json(progress);
+
+    const progress = await CourseProgress.findOne({ userId, courseId }).populate({
+      path: "courseId",
+      select: "title sections",
+      populate: {
+        path: "sections.lessons",
+        select: "title content thumbnailUrl quiz duration -videoUrl", 
+      },
+    });
+
+    res.status(200).json({
+      progress: progress || null,
+      message: progress ? "Progress found" : "No progress yet",
+    });
   } catch (error) {
     console.error("Get Progress Error:", error.message);
     res.status(500).json({ message: "Failed to retrieve progress" });
   }
 };
-
-// تحديث تقدم الدورة
 const updateProgress = async (req, res) => {
   try {
     const { courseId } = req.params;
