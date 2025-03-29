@@ -206,8 +206,9 @@ exports.getAllCourses = async (req, res) => {
 exports.getCoursePreview = async (req, res) => {
   try {
     const courses = await Course.find()
-      .select('title description featuredImage price level category sections')
-      .populate('category', 'name');
+      .select('title description featuredImage price level category sections tags')
+     
+      .populate('category', 'name')
 
     const coursesWithRatings = await Promise.all(
       courses.map(async (course) => {
@@ -231,6 +232,7 @@ exports.getCoursePreview = async (req, res) => {
           price: course.price,
           level: course.level,
           category: course.category ? course.category.name : "غير مصنف",
+          tags: course.tags,
           averageRating: Number(averageRating.toFixed(1)),
           totalHours,
           views: course.views, 
