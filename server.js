@@ -18,11 +18,13 @@ const couponRoutes = require('./routes/couponRoutes');
 const paymentRoutes = require("./routes/paymentRoutes"); 
 const communityRoutes = require("./routes/communityRoutes"); 
 const categoryRoutes = require("./routes/categoryRoutes"); 
-const notificationRoutes = require("./routes/notificationRoutes"); // إضافة الراوتر
+const notificationRoutes = require("./routes/notificationRoutes");
 const connectDB = require("./config/db");
 const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
 const User = require("./models/User");
+const { getChatbotResponse } = require('./controllers/chatbotController'); // استيراد منطق الـ Chatbot
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
@@ -60,20 +62,24 @@ app.use("/coupons", couponRoutes);
 app.use("/payment", paymentRoutes);
 app.use("/community", communityRoutes);
 app.use('/categories', categoryRoutes);
-app.use("/notifications", notificationRoutes); // إضافة مسار الإشعارات
+app.use("/notifications", notificationRoutes);
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error("Authentication error"));
   const user = await User.findById(socket.handshake.auth.userId).select("username profileImage");
+  if (!user) return next(new Error("User not found"));
   socket.user = user;
+  socket.userId = socket.handshake.auth.userId;
   next();
 });
 
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
-  socket.join("liveChat"); // كل المستخدمين ينضموا للـ Live Chat تلقائياً
+  const chatbotRoom = `chatbot_${socket.userId}`;
+  socket.join(chatbotRoom);
+  socket.join("liveChat");
 
   socket.on("joinRoom", async ({ roomId }) => {
     socket.join(roomId);
@@ -104,7 +110,18 @@ io.on("connection", (socket) => {
         $push: { chatMessages: message },
       });
     }
-    // الـ Live Chat مش محتاج حفظ في Database، بس بيتبعت للكل
+  });
+
+  socket.on("chatbotMessage", async ({ content }) => {
+    const botResponse = await getChatbotResponse(content);
+    const botMessage = {
+      userId: "chatbot",
+      content: botResponse,
+      timestamp: new Date(),
+      username: "Chatbot",
+      profileImage: "https://cdn.technologyadvice.com/wp-content/uploads/2018/02/friendly-chatbot.jpg"
+    };
+    io.to(chatbotRoom).emit("newMessage", { roomId: chatbotRoom, message: botMessage });
   });
 
   socket.on("disconnect", () => {
