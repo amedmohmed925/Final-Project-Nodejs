@@ -225,9 +225,12 @@ exports.refreshToken = async (req, res) => {
       if (err) return res.status(403).json({ message: "Forbidden" });
 
       const newAccessToken = generateAccessToken(user);
-      res.json({ accessToken: newAccessToken });
-    });
+      const newRefreshToken = generateRefreshToken(user);
 
+      await RefreshToken.updateOne({ token }, { token: newRefreshToken });
+      
+      res.json({ accessToken: newAccessToken, refreshToken: newRefreshToken });
+    });
   } catch (error) {
     res.status(500).json({ message: "Server error", error: error.message });
   }
