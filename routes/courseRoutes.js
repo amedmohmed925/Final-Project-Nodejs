@@ -16,6 +16,7 @@ router.get('/preview', courseController.getCoursePreview);
 router.get('/preview/:id', courseController.getCoursePreviewById); 
 router.get('/details/:id', courseController.getCourseDetailsWithoutVideos);
 router.get('/most-viewed', courseController.getMostViewedCourses); 
+router.get('/count', courseController.getCoursesCount);
 /**
  * @swagger
  * components:

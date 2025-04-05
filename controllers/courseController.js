@@ -201,6 +201,14 @@ exports.getAllCourses = async (req, res) => {
   }
 };
 
+exports.getCoursesCount = async (req, res) => {
+  try {
+    const coursesCount = await Course.countDocuments();
+    res.status(200).json(coursesCount); // Return only the number
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
 
 // 1. Endpoint to get course preview data with average rating
 exports.getCoursePreview = async (req, res) => {

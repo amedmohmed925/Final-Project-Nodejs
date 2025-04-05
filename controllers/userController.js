@@ -119,6 +119,33 @@ let getCoursesByUser = async (req, res) => {
   }
 };
 
+const getStudentsCount = async (req, res) => {
+  try {
+    const studentsCount = await User.countDocuments({ role: "student" });
+    res.status(200).json(studentsCount); // Return only the number
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching students count",
+      error,
+    });
+  }
+};
+
+// Get Teachers Count Only
+const getTeachersCount = async (req, res) => {
+  try {
+    const teachersCount = await User.countDocuments({ role: "teacher" });
+    res.status(200).json(teachersCount); // Return only the number
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching teachers count",
+      error,
+    });
+  }
+};
+
 let getUserFeedbacks = async (req, res) => {
   // let { id } = req.params;
 
@@ -343,5 +370,7 @@ module.exports = {
   editUserInfo,
   deleteUser,
   getAllTeachers,
-  updateProfileImage
+  updateProfileImage,
+  getStudentsCount,
+  getTeachersCount
 };

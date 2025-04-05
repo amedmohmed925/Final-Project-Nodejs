@@ -10,7 +10,9 @@ const {
     editUserInfo,
     deleteUser,
     getAllTeachers,
-    updateProfileImage
+    updateProfileImage,
+    getStudentsCount,
+    getTeachersCount
 } = require("../controllers/userController");
 
 const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
@@ -36,6 +38,11 @@ const storage = multer.diskStorage({
   });
 
 const router = express.Router();
+
+
+router.get('/students/count', getStudentsCount);
+router.get('/teachers/count', getTeachersCount);
+
 router.get("/teachers", getAllTeachers); // مسار جديد لجلب المعلمين
 /**
  * @swagger
