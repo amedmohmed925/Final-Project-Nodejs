@@ -47,22 +47,22 @@ console.log('Env Check:', {
 const dbUri = process.env.NODE_ENV === 'test' ? process.env.TEST_MONGODB_URI : process.env.MONGO_URI;
 connectDB(dbUri);
 
-app.use("/auth", authRoutes);
-app.use('/users', userRoutes);
-app.use('/courses', courseRoutes);
-app.use('/questions', questionRoutes);
-app.use("/feedbacks", feedbacksRoutes);
-app.use("/answers", answersRoutes);
-app.use("/forums", forumRoutes);
-app.use("/groups", groupRoutes);
-app.use("/quizzes", quizRoutes);
-app.use("/course-progress", courseProgressRoutes);
-app.use('/cart', cartRoutes);
-app.use("/coupons", couponRoutes);
-app.use("/payment", paymentRoutes);
-app.use("/community", communityRoutes);
-app.use('/categories', categoryRoutes);
-app.use("/notifications", notificationRoutes);
+app.use("/v1/auth", authRoutes);
+app.use('/v1/users', userRoutes);
+app.use('/v1/courses', courseRoutes);
+app.use('/v1/questions', questionRoutes);
+app.use("/v1/feedbacks", feedbacksRoutes);
+app.use("/v1/answers", answersRoutes);
+app.use("/v1/forums", forumRoutes);
+app.use("/v1/groups", groupRoutes);
+app.use("/v1/quizzes", quizRoutes);
+app.use("/v1/course-progress", courseProgressRoutes);
+app.use('/v1/cart', cartRoutes);
+app.use("/v1/coupons", couponRoutes);
+app.use("/v1/payment", paymentRoutes);
+app.use("/v1/community", communityRoutes);
+app.use('/v1/categories', categoryRoutes);
+app.use("/v1/notifications", notificationRoutes);
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
