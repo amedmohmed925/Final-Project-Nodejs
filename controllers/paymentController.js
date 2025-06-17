@@ -1,5 +1,5 @@
-
 const axios = require("axios");
+const Payment = require('../models/Payment');
 
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
 const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
@@ -55,6 +55,17 @@ const createPayment = async (req, res) => {
     const paymentKeyResponse = await axios.post("https://accept.paymob.com/api/acceptance/payment_keys", paymentKeyPayload);
     const paymentKey = paymentKeyResponse.data.token;
     console.log("Payment Key:", paymentKey);
+
+    // حفظ عملية الدفع في قاعدة البيانات
+    await Payment.create({
+      user: req.user.id,
+      amount: req.body.amount,
+      orderId: orderId,
+      paymentKey: paymentKey,
+      course: req.body.courseId, // إذا كان الدفع لكورس معين
+      status: 'pending',
+      provider: 'paymob'
+    });
 
     res.json({ paymentKey, orderId });
   } catch (error) {

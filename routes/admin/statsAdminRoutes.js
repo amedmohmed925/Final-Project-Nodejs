@@ -1,0 +1,30 @@
+// routes/admin/statsAdminRoutes.js
+const express = require('express');
+const router = express.Router();
+const statsAdminController = require('../../controllers/admin/statsAdminController');
+const { isAdmin } = require('../../middleware/roleMiddleware');
+
+/**
+ * @swagger
+ * tags:
+ *   name: AdminStats
+ *   description: إحصائيات لوحة تحكم الأدمن
+ */
+
+/**
+ * @swagger
+ * /v1/admin/stats/dashboard:
+ *   get:
+ *     summary: إحصائيات لوحة التحكم الرئيسية
+ *     tags: [AdminStats]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: إحصائيات النظام (مستخدمين، كورسات، إيرادات، شكاوى، كوبونات)
+ */
+
+// Dashboard statistics
+router.get('/dashboard', isAdmin, statsAdminController.getDashboardStats);
+
+module.exports = router;

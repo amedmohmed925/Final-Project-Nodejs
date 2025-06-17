@@ -24,6 +24,20 @@ const cors = require("cors");
 const swaggerDocs = require("./swagger/swagger");
 const User = require("./models/User");
 const { getChatbotResponse } = require('./controllers/chatbotController'); // استيراد منطق الـ Chatbot
+const pagesAdminRoutes = require('./routes/admin/pagesAdminRoutes');
+const complaintsAdminRoutes = require('./routes/admin/complaintsAdminRoutes');
+const logsAdminRoutes = require('./routes/admin/logsAdminRoutes');
+const couponsAdminRoutes = require('./routes/admin/couponsAdminRoutes');
+const statsAdminRoutes = require('./routes/admin/statsAdminRoutes');
+const studentsTeacherRoutes = require('./routes/teacher/studentsTeacherRoutes');
+const resourcesTeacherRoutes = require('./routes/teacher/resourcesTeacherRoutes');
+const progressTeacherRoutes = require('./routes/teacher/progressTeacherRoutes');
+const feedbackTeacherRoutes = require('./routes/teacher/feedbackTeacherRoutes');
+const courseStatsTeacherRoutes = require('./routes/teacher/courseStatsTeacherRoutes');
+const coursesStudentRoutes = require('./routes/student/coursesStudentRoutes');
+const favoritesStudentRoutes = require('./routes/student/favoritesStudentRoutes');
+const certificatesStudentRoutes = require('./routes/student/certificatesStudentRoutes');
+const progressStudentRoutes = require('./routes/student/progressStudentRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -63,6 +77,20 @@ app.use("/v1/payment", paymentRoutes);
 app.use("/v1/community", communityRoutes);
 app.use('/v1/categories', categoryRoutes);
 app.use("/v1/notifications", notificationRoutes);
+app.use('/v1/admin/pages', pagesAdminRoutes);
+app.use('/v1/admin/complaints', complaintsAdminRoutes);
+app.use('/v1/admin/logs', logsAdminRoutes);
+app.use('/v1/admin/coupons', couponsAdminRoutes);
+app.use('/v1/admin/stats', statsAdminRoutes);
+app.use('/v1/teacher/students', studentsTeacherRoutes);
+app.use('/v1/teacher/resources', resourcesTeacherRoutes);
+app.use('/v1/teacher/progress', progressTeacherRoutes);
+app.use('/v1/teacher/feedbacks', feedbackTeacherRoutes);
+app.use('/v1/teacher/course-stats', courseStatsTeacherRoutes);
+app.use('/v1/student/courses', coursesStudentRoutes);
+app.use('/v1/student/favorites', favoritesStudentRoutes);
+app.use('/v1/student/certificates', certificatesStudentRoutes);
+app.use('/v1/student/progress', progressStudentRoutes);
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
