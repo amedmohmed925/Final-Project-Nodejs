@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const complaintsAdminController = require('../../controllers/admin/complaintsAdminController');
 const { isAdmin } = require('../../middleware/roleMiddleware');
+const {authenticateToken} = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -101,12 +102,12 @@ const { isAdmin } = require('../../middleware/roleMiddleware');
  */
 
 // List/search complaints
-router.get('/', isAdmin, complaintsAdminController.listComplaints);
+router.get('/',authenticateToken, isAdmin, complaintsAdminController.listComplaints);
 // Get single complaint
-router.get('/:id', isAdmin, complaintsAdminController.getComplaint);
+router.get('/:id',authenticateToken, isAdmin, complaintsAdminController.getComplaint);
 // Update complaint status
-router.patch('/:id/status', isAdmin, complaintsAdminController.updateStatus);
+router.patch('/:id/status',authenticateToken, isAdmin, complaintsAdminController.updateStatus);
 // Delete complaint
-router.delete('/:id', isAdmin, complaintsAdminController.deleteComplaint);
+router.delete('/:id',authenticateToken, isAdmin, complaintsAdminController.deleteComplaint);
 
 module.exports = router;
