@@ -33,6 +33,7 @@ const userSchema = new mongoose.Schema({
     },
   },
   bio: { type: String },
+  googleId: { type: String, default: null },
   socialMedia: {
     facebook: { type: String },
     twitter: { type: String },

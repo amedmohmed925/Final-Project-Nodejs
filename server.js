@@ -39,6 +39,7 @@ const favoritesStudentRoutes = require('./routes/student/favoritesStudentRoutes'
 const certificatesStudentRoutes = require('./routes/student/certificatesStudentRoutes');
 const progressStudentRoutes = require('./routes/student/progressStudentRoutes');
 const complaintsRoutes = require('./routes/complaintsRoutes');
+const googleAuthRoutes = require('./routes/googleAuthRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -63,6 +64,7 @@ const dbUri = process.env.NODE_ENV === 'test' ? process.env.TEST_MONGODB_URI : p
 connectDB(dbUri);
 
 app.use("/v1/auth", authRoutes);
+app.use('/v1/auth', googleAuthRoutes);
 app.use('/v1/users', userRoutes);
 app.use('/v1/courses', courseRoutes);
 app.use('/v1/questions', questionRoutes);

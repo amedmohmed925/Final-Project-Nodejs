@@ -1617,3 +1617,23 @@
 ---
 
 # مجموع جميع الـ Endpoints في المشروع (قديمة + جديدة)
+
+---
+
+### Google Auth (تسجيل/دخول عبر جوجل)
+**POST** `/v1/auth/google`
+
+**Body:**
+- googleId (string): معرف جوجل للمستخدم (مطلوب)
+- email (string): البريد الإلكتروني (مطلوب)
+- firstName (string): الاسم الأول (مطلوب)
+- lastName (string): الاسم الأخير (مطلوب)
+- profileImage (string): رابط صورة البروفايل (اختياري)
+- role (string): نوع المستخدم (student/teacher) (مطلوب)
+
+**Responses:**
+- 200: تسجيل الدخول/التسجيل ناجح (accessToken, refreshToken, user)
+- 400: بيانات ناقصة
+- 500: خطأ في السيرفر
+
+---
