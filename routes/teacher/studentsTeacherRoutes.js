@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const studentsTeacherController = require('../../controllers/teacher/studentsTeacherController');
 const { isTeacher } = require('../../middleware/roleMiddleware');
+const {authenticateToken} = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -84,10 +85,10 @@ const { isTeacher } = require('../../middleware/roleMiddleware');
  */
 
 // List students in a course
-router.get('/', isTeacher, studentsTeacherController.listStudents);
+router.get('/',authenticateToken, isTeacher, studentsTeacherController.listStudents);
 // Remove student from course
-router.delete('/', isTeacher, studentsTeacherController.removeStudent);
+router.delete('/',authenticateToken, isTeacher, studentsTeacherController.removeStudent);
 // Get student progress in course
-router.get('/progress', isTeacher, studentsTeacherController.getStudentProgress);
+router.get('/progress',authenticateToken, isTeacher, studentsTeacherController.getStudentProgress);
 
 module.exports = router;
