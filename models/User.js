@@ -40,6 +40,7 @@ const userSchema = new mongoose.Schema({
     linkedin: { type: String },
     instagram: { type: String },
   },
+  purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
 }, { timestamps: true });
 
 userSchema.index({ username: 1 }, { unique: true });

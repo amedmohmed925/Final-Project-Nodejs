@@ -359,6 +359,22 @@ let getAllTeachers = async (req, res) => {
   }
 };
 
+let getPurchasedCourses = async (req, res) => {
+  let { id } = req.params;
+  try {
+    let user = await User.findById(id).populate({
+      path: 'purchasedCourses',
+      model: 'Course',
+    });
+    if (!user) {
+      return res.status(404).json({ success: false, message: 'User not found' });
+    }
+    res.status(200).json({ success: true, courses: user.purchasedCourses || [] });
+  } catch (error) {
+    res.status(500).json({ success: false, message: 'Error fetching purchased courses', error });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -372,5 +388,6 @@ module.exports = {
   getAllTeachers,
   updateProfileImage,
   getStudentsCount,
-  getTeachersCount
+  getTeachersCount,
+  getPurchasedCourses
 };

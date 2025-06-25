@@ -1,8 +1,32 @@
 const axios = require("axios");
 const Payment = require('../models/Payment');
+const Course = require('../models/Course');
+const User = require('../models/User');
 
 const PAYMOB_API_KEY = process.env.PAYMOB_API_KEY;
 const PAYMOB_INTEGRATION_ID = process.env.PAYMOB_INTEGRATION_ID;
+
+const addStudentToCourse = async (userId, courseId) => {
+  const course = await Course.findById(courseId);
+  if (!course) return;
+  if (!course.students) course.students = [];
+  // لا تضف الطالب إذا كان موجود بالفعل
+  if (!course.students.some(id => id.toString() === userId.toString())) {
+    course.students.push(userId);
+    await course.save();
+  }
+};
+
+const addCourseToUser = async (userId, courseId) => {
+  const user = await User.findById(userId);
+  if (!user) return;
+  if (!user.purchasedCourses) user.purchasedCourses = [];
+  // لا تضف الكورس إذا كان موجود بالفعل
+  if (!user.purchasedCourses.some(id => id.toString() === courseId.toString())) {
+    user.purchasedCourses.push(courseId);
+    await user.save();
+  }
+};
 
 const createPayment = async (req, res) => {
   console.log("req.user:", req.user);
@@ -66,6 +90,12 @@ const createPayment = async (req, res) => {
       status: 'pending',
       provider: 'paymob'
     });
+
+    // إضافة الطالب إلى الكورس بعد الدفع
+    if (req.body.courseId) {
+      await addStudentToCourse(req.user.id, req.body.courseId);
+      await addCourseToUser(req.user.id, req.body.courseId);
+    }
 
     res.json({ paymentKey, orderId });
   } catch (error) {

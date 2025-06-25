@@ -32,6 +32,7 @@ const courseSchema = new mongoose.Schema({
   requirements: [{ type: String }], 
   targetAudience: [{ type: String }],
   views: { type: Number, default: 0 }, // حقل جديد لعدد المشاهدات
+  students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
 }, { timestamps: true });
 
 module.exports = mongoose.model('Course', courseSchema);

@@ -49,5 +49,7 @@ const { isStudent } = require('../../middleware/roleMiddleware');
 router.get('/', isStudent, coursesStudentController.myCourses);
 // Unsubscribe from a course
 router.delete('/', isStudent, coursesStudentController.unsubscribe);
+// Get my purchased courses
+router.get('/purchased', isStudent, coursesStudentController.myPurchasedCourses);
 
 module.exports = router;

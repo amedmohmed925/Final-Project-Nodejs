@@ -53,6 +53,20 @@ const forgetPasswordLimiter = rateLimit({
   message: 'Too many password reset requests, please try again after 1 hour'
 });
 
+// Password validation function
+function isStrongPassword(password) {
+  // At least 8 chars, 1 uppercase, 1 lowercase, 1 number, 1 special char
+  const regex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]).{8,}$/;
+  return regex.test(password);
+}
+
+// Username validation function
+function isValidUsername(username) {
+  // At least 4 chars, only letters, numbers, underscores, no spaces
+  const regex = /^[a-zA-Z0-9_]{4,}$/;
+  return regex.test(username);
+}
+
 exports.register = [
   registerLimiter,
   async (req, res) => {
@@ -88,6 +102,14 @@ exports.register = [
       const existingUser = await User.findOne({ username });
       if (existingUser) {
         return res.status(400).json({ message: "Username already exists" });
+      }
+
+      if (!isStrongPassword(password)) {
+        return res.status(400).json({ message: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." });
+      }
+
+      if (!isValidUsername(username)) {
+        return res.status(400).json({ message: "Username must be at least 4 characters and contain only letters, numbers, and underscores (no spaces)." });
       }
 
       const hashedPassword = await bcrypt.hash(password, 10);
@@ -339,6 +361,10 @@ exports.resetPassword = async (req, res, next) => {
 
   if (!email || !token || !newPassword) {
     return res.status(400).json({ message: "Please provide email, token, and new password." });
+  }
+
+  if (!isStrongPassword(newPassword)) {
+    return res.status(400).json({ message: "Password must be at least 8 characters and include uppercase, lowercase, number, and special character." });
   }
 
   try {

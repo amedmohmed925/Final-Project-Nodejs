@@ -12,7 +12,8 @@ const {
     getAllTeachers,
     updateProfileImage,
     getStudentsCount,
-    getTeachersCount
+    getTeachersCount,
+    getPurchasedCourses
 } = require("../controllers/userController");
 
 const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
@@ -192,5 +193,14 @@ router.put("/:id", authenticateToken, editUserInfo);
  *       - bearerAuth: []
  */
 router.delete("/:id", authenticateToken, deleteUser);
+
+/**
+ * @swagger
+ * /users/{id}/purchased-courses:
+ *   get:
+ *     summary: Get all purchased courses by the user
+ *     tags: [Users]
+ */
+router.get('/:id/purchased-courses', authenticateToken, getPurchasedCourses);
 
 module.exports = router;
