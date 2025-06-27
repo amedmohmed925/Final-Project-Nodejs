@@ -25,7 +25,7 @@ const generateRefreshToken = (user) => {
 // Rate Limiters
 const loginLimiter = rateLimit({
   windowMs: 10 * 60 * 1000, // 10 minutes
-  max: 5, // 5 attempts
+  max: 15, // 5 attempts
   message: 'Too many login attempts, please try again after 10 minutes'
 });
 
@@ -160,10 +160,15 @@ exports.login = [
   async (req, res) => {
     try {
       const { username, password } = req.body;
-      const user = await User.findOne({ username });
+      let user;
+      if (/\S+@\S+\.\S+/.test(username)) {
+        user = await User.findOne({ email: username });
+      } else {
+        user = await User.findOne({ username });
+      }
 
       if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(401).json({ message: "Invalid credentials" });
+        return res.status(401).json({ message: "Invalid credentials. Please check your email/username and password." });
       }
 
       if (!user.isVerified) {

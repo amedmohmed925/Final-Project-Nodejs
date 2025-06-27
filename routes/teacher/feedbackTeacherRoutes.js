@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const feedbackTeacherController = require('../../controllers/teacher/feedbackTeacherController');
 const { isTeacher } = require('../../middleware/roleMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -83,10 +84,10 @@ const { isTeacher } = require('../../middleware/roleMiddleware');
  */
 
 // List feedbacks for a course
-router.get('/', isTeacher, feedbackTeacherController.listCourseFeedbacks);
+router.get('/',authenticateToken,  isTeacher, feedbackTeacherController.listCourseFeedbacks);
 // Reply to feedback
-router.post('/:feedbackId/reply', isTeacher, feedbackTeacherController.replyToFeedback);
+router.post('/:feedbackId/reply', authenticateToken, isTeacher, feedbackTeacherController.replyToFeedback);
 // Toggle feedback visibility
-router.patch('/:feedbackId/toggle', isTeacher, feedbackTeacherController.toggleFeedbackVisibility);
+router.patch('/:feedbackId/toggle', authenticateToken, isTeacher, feedbackTeacherController.toggleFeedbackVisibility);
 
 module.exports = router;
