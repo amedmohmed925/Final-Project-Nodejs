@@ -40,6 +40,7 @@ const certificatesStudentRoutes = require('./routes/student/certificatesStudentR
 const progressStudentRoutes = require('./routes/student/progressStudentRoutes');
 const complaintsRoutes = require('./routes/complaintsRoutes');
 const googleAuthRoutes = require('./routes/googleAuthRoutes');
+const examRoutes = require('./routes/examRoutes');
 
 const app = express();
 const server = http.createServer(app);
@@ -95,6 +96,7 @@ app.use('/v1/student/favorites', favoritesStudentRoutes);
 app.use('/v1/student/certificates', certificatesStudentRoutes);
 app.use('/v1/student/progress', progressStudentRoutes);
 app.use('/v1/complaints', complaintsRoutes);
+app.use('/v1/exams', examRoutes);
 swaggerDocs(app);
 
 io.use(async (socket, next) => {

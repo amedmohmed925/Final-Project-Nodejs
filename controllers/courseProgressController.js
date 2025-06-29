@@ -99,4 +99,51 @@ const getAllProgress = async (req, res) => {
   }
 };
 
-module.exports = { getProgress, updateProgress, getAllProgress };
+// جلب أول درس غير مكتمل للطالب في كورس معين (يبحث في كل دروس الكورس)
+const getFirstUnwatchedLesson = async (req, res) => {
+  try {
+    const { courseId } = req.query;
+    if (!courseId) return res.status(400).json({ message: 'courseId is required' });
+    const course = await Course.findById(courseId).lean();
+    if (!course || !course.sections || course.sections.length === 0) {
+      return res.json({ lesson: null });
+    }
+    const progress = await CourseProgress.findOne({ userId: req.user.id, courseId });
+    // بناء خريطة للدروس المكتملة
+    const completedMap = {};
+    if (progress && progress.sections) {
+      for (const section of progress.sections) {
+        if (section.lessons) {
+          for (const lesson of section.lessons) {
+            if (lesson.completed) {
+              completedMap[`${section.sectionIndex}_${lesson.lessonIndex}`] = true;
+            }
+          }
+        }
+      }
+    }
+    // ابحث عن أول درس غير مكتمل فعليًا
+    for (let s = 0; s < course.sections.length; s++) {
+      const section = course.sections[s];
+      if (!section.lessons) continue;
+      for (let l = 0; l < section.lessons.length; l++) {
+        const lessonObj = section.lessons[l];
+        const key = `${s}_${l}`;
+        if (!completedMap[key]) {
+          return res.json({ lesson: {
+            sectionIndex: s,
+            lessonIndex: l,
+            title: lessonObj && lessonObj.title ? lessonObj.title : '',
+            completed: false
+          }});
+        }
+      }
+    }
+    // إذا أكمل كل الدروس
+    return res.json({ lesson: null });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+module.exports = { getProgress, updateProgress, getAllProgress, getFirstUnwatchedLesson };
