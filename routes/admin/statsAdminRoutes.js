@@ -3,7 +3,7 @@ const express = require('express');
 const router = express.Router();
 const statsAdminController = require('../../controllers/admin/statsAdminController');
 const { isAdmin } = require('../../middleware/roleMiddleware');
-
+const { authenticateToken } = require('../../middleware/authMiddleware');
 /**
  * @swagger
  * tags:
@@ -25,6 +25,6 @@ const { isAdmin } = require('../../middleware/roleMiddleware');
  */
 
 // Dashboard statistics
-router.get('/dashboard', isAdmin, statsAdminController.getDashboardStats);
+router.get('/dashboard',authenticateToken, isAdmin, statsAdminController.getDashboardStats);
 
 module.exports = router;

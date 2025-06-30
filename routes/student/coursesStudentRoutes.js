@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const coursesStudentController = require('../../controllers/student/coursesStudentController');
 const { isStudent } = require('../../middleware/roleMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -46,10 +47,10 @@ const { isStudent } = require('../../middleware/roleMiddleware');
  */
 
 // Get my courses
-router.get('/', isStudent, coursesStudentController.myCourses);
+router.get('/',authenticateToken, isStudent, coursesStudentController.myCourses);
 // Unsubscribe from a course
-router.delete('/', isStudent, coursesStudentController.unsubscribe);
+router.delete('/',authenticateToken, isStudent, coursesStudentController.unsubscribe);
 // Get my purchased courses
-router.get('/purchased', isStudent, coursesStudentController.myPurchasedCourses);
+router.get('/purchased',authenticateToken, isStudent, coursesStudentController.myPurchasedCourses);
 
 module.exports = router;

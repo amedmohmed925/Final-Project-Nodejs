@@ -1,7 +1,28 @@
-// controllers/admin/userAdminController.js
-// إدارة المستخدمين للأدمن
+
 const User = require('../../models/User');
 const Log = require('../../models/Log');
+
+// جلب جميع المعلمين
+exports.getAllTeachers = async (req, res) => {
+  try {
+    const teachers = await User.find({ role: 'teacher' });
+    res.json(teachers);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching teachers', error: err.message });
+  }
+};
+
+// جلب جميع الطلاب
+exports.getAllStudents = async (req, res) => {
+  try {
+    const students = await User.find({ role: 'student' });
+    res.json(students);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching students', error: err.message });
+  }
+};
+// controllers/admin/userAdminController.js
+// إدارة المستخدمين للأدمن
 
 // تفعيل حساب مستخدم
 exports.activateUser = async (req, res) => {

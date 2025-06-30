@@ -112,4 +112,39 @@ const createPayment = async (req, res) => {
   }
 };
 
-module.exports = { createPayment };
+// Webhook لاستقبال إشعار الدفع من Paymob
+const handlePaymobWebhook = async (req, res) => {
+  try {
+    const { obj } = req.body;
+    // تحقق من وجود بيانات الطلب
+    if (!obj || !obj.order || !obj.order.id) {
+      return res.status(400).json({ message: 'Invalid webhook data' });
+    }
+    // ابحث عن عملية الدفع في قاعدة البيانات
+    const payment = await Payment.findOne({ orderId: obj.order.id.toString() });
+    if (!payment) {
+      return res.status(404).json({ message: 'Payment not found' });
+    }
+    // تحقق من حالة الدفع
+    if (obj.success && obj.pending === false && obj.is_auth === true && obj.is_capture === true) {
+      // اعتبر الدفع ناجحًا
+      payment.status = 'completed';
+      await payment.save();
+      // أضف الطالب للكورس إذا لم يكن مضافًا
+      if (payment.user && payment.course) {
+        await addStudentToCourse(payment.user, payment.course);
+        await addCourseToUser(payment.user, payment.course);
+      }
+      return res.status(200).json({ message: 'Payment completed and student added to course.' });
+    } else {
+      payment.status = 'failed';
+      await payment.save();
+      return res.status(200).json({ message: 'Payment failed or not completed.' });
+    }
+  } catch (error) {
+    console.error('Paymob Webhook Error:', error.message);
+    res.status(500).json({ message: 'Webhook processing error' });
+  }
+};
+
+module.exports = { createPayment, handlePaymobWebhook };

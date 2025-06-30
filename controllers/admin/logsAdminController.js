@@ -8,8 +8,10 @@ exports.listLogs = async (req, res) => {
     if (userId) filter.user = userId;
     if (action) filter.action = action;
     if (search) filter.details = { $regex: search, $options: 'i' };
+        const totalCount = await Log.countDocuments(filter); // احسب العدد الكلي
+
     const logs = await Log.find(filter).sort({ createdAt: -1 }).limit(Number(limit));
-    res.json(logs);
+    res.json({logs, totalCount});
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const logsAdminController = require('../../controllers/admin/logsAdminController');
 const { isAdmin } = require('../../middleware/roleMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -88,12 +89,12 @@ const { isAdmin } = require('../../middleware/roleMiddleware');
  */
 
 // List/search logs
-router.get('/', isAdmin, logsAdminController.listLogs);
+router.get('/',authenticateToken,  isAdmin, logsAdminController.listLogs);
 // Get single log
-router.get('/:id', isAdmin, logsAdminController.getLog);
+router.get('/:id',authenticateToken,  isAdmin, logsAdminController.getLog);
 // Delete single log
-router.delete('/:id', isAdmin, logsAdminController.deleteLog);
+router.delete('/:id',authenticateToken,  isAdmin, logsAdminController.deleteLog);
 // Clear all logs
-router.delete('/', isAdmin, logsAdminController.clearLogs);
+router.delete('/',authenticateToken,  isAdmin, logsAdminController.clearLogs);
 
 module.exports = router;

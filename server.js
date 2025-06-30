@@ -82,6 +82,7 @@ app.use("/v1/community", communityRoutes);
 app.use('/v1/categories', categoryRoutes);
 app.use("/v1/notifications", notificationRoutes);
 app.use('/v1/admin/pages', pagesAdminRoutes);
+app.use('/v1/admin/users', require('./routes/admin/usersAdminRoutes'));
 app.use('/v1/admin/complaints', complaintsAdminRoutes);
 app.use('/v1/admin/logs', logsAdminRoutes);
 app.use('/v1/admin/coupons', couponsAdminRoutes);
@@ -97,6 +98,7 @@ app.use('/v1/student/certificates', certificatesStudentRoutes);
 app.use('/v1/student/progress', progressStudentRoutes);
 app.use('/v1/complaints', complaintsRoutes);
 app.use('/v1/exams', examRoutes);
+app.use('/v1/admin/payments', require('./routes/admin/paymentsAdminRoutes'));
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
