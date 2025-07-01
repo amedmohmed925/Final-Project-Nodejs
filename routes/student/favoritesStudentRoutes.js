@@ -3,6 +3,7 @@ const express = require('express');
 const router = express.Router();
 const favoritesStudentController = require('../../controllers/student/favoritesStudentController');
 const { isStudent } = require('../../middleware/roleMiddleware');
+const { authenticateToken } = require('../../middleware/authMiddleware');
 
 /**
  * @swagger
@@ -67,10 +68,10 @@ const { isStudent } = require('../../middleware/roleMiddleware');
  */
 
 // List favorites
-router.get('/', isStudent, favoritesStudentController.listFavorites);
+router.get('/',authenticateToken, isStudent, favoritesStudentController.listFavorites);
 // Add to favorites
-router.post('/', isStudent, favoritesStudentController.addFavorite);
+router.post('/',authenticateToken, isStudent, favoritesStudentController.addFavorite);
 // Remove from favorites
-router.delete('/', isStudent, favoritesStudentController.removeFavorite);
+router.delete('/',authenticateToken, isStudent, favoritesStudentController.removeFavorite);
 
 module.exports = router;

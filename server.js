@@ -99,6 +99,7 @@ app.use('/v1/student/progress', progressStudentRoutes);
 app.use('/v1/complaints', complaintsRoutes);
 app.use('/v1/exams', examRoutes);
 app.use('/v1/admin/payments', require('./routes/admin/paymentsAdminRoutes'));
+app.use('/v1/contact', require('./routes/contactRoutes'));
 swaggerDocs(app);
 
 io.use(async (socket, next) => {
