@@ -1,9 +1,9 @@
 // routes/student/certificatesStudentRoutes.js
-const express = require('express');
+const express = require("express");
 const router = express.Router();
-const certificatesStudentController = require('../../controllers/student/certificatesStudentController');
-const { isStudent } = require('../../middleware/roleMiddleware');
-
+const certificatesStudentController = require("../../controllers/student/certificatesStudentController");
+const { isStudent } = require("../../middleware/roleMiddleware");
+const { authenticateToken } = require("../../middleware/authMiddleware");
 /**
  * @swagger
  * tags:
@@ -43,8 +43,24 @@ const { isStudent } = require('../../middleware/roleMiddleware');
  */
 
 // List certificates
-router.get('/', isStudent, certificatesStudentController.listCertificates);
+router.get(
+  "/",
+  authenticateToken,
+  isStudent,
+  certificatesStudentController.listCertificates
+);
+router.post(
+  "/",
+  authenticateToken,
+  isStudent,
+  certificatesStudentController.createCertificate
+);
 // Get single certificate
-router.get('/:id', isStudent, certificatesStudentController.getCertificate);
+router.get(
+  "/:id",
+  authenticateToken,
+  isStudent,
+  certificatesStudentController.getCertificate
+);
 
 module.exports = router;

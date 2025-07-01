@@ -198,7 +198,7 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json({ message: "Valid coupon code is required" });
     }
 
-    let cart = await Cart.findOne({ userId });
+    let cart = await Cart.findOne({ userId }).populate("items.courseId");
     if (!cart || cart.items.length === 0) {
       return res.status(400).json({ message: "Cart is empty, cannot apply coupon" });
     }
@@ -220,12 +220,14 @@ const applyCoupon = async (req, res) => {
       return res.status(400).json({ message: "You have already used this coupon" });
     }
 
-    // تطبيق الكوبون دون زيادة usageCount أو تسجيل CouponUsage
     cart.discount = coupon.discount;
     cart.couponCode = couponCode;
     calculateCartTotals(cart);
 
     await cart.save();
+
+    // Populate again to ensure items have course data after save
+    cart = await Cart.findOne({ userId }).populate("items.courseId");
 
     res.status(200).json({ message: "Coupon applied successfully", cart });
   } catch (error) {
