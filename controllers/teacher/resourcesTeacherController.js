@@ -4,6 +4,7 @@ const Course = require('../../models/Course');
 const Joi = require('joi');
 const cloudinary = require('../../cloudinaryConfig');
 
+
 const resourceSchema = Joi.object({
   courseId: Joi.string().required(),
   title: Joi.string().min(3).max(100).required(),
