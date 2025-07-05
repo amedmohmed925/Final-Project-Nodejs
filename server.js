@@ -1,6 +1,7 @@
 require('dotenv').config();
 
 const express = require("express");
+const path = require('path');
 const http = require("http");
 const { Server } = require("socket.io");
 const authRoutes = require("./routes/authRoutes");
@@ -95,6 +96,7 @@ app.use('/v1/teacher/course-stats', courseStatsTeacherRoutes);
 app.use('/v1/student/courses', coursesStudentRoutes);
 app.use('/v1/student/favorites', favoritesStudentRoutes);
 app.use('/v1/student/certificates', certificatesStudentRoutes);
+app.use('/certificates', express.static(path.join(__dirname, 'public/certificates')));
 app.use('/v1/student/progress', progressStudentRoutes);
 app.use('/v1/complaints', complaintsRoutes);
 app.use('/v1/exams', examRoutes);

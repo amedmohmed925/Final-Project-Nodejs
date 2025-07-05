@@ -177,7 +177,26 @@ exports.submitExam = async (req, res) => {
       answers,
       score
     });
-    res.status(201).json({ score, total: exam.questions.length });
+
+    // إنشاء شهادة إذا نجح الطالب (60% أو أكثر)
+    const passingScore = Math.ceil(exam.questions.length * 0.6);
+    let certificate = null;
+    if (score >= passingScore) {
+      const Certificate = require("../models/Certificate");
+      // تحقق ألا توجد شهادة سابقة
+      const exists = await Certificate.findOne({ userId: req.user.id, courseId: exam.courseId });
+      if (!exists) {
+        // توليد رابط شهادة افتراضي (يمكنك تعديله لاحقاً)
+        const fileUrl = `/certificates/${req.user.id}_${exam.courseId}_${Date.now()}.pdf`;
+        certificate = await Certificate.create({
+          userId: req.user.id,
+          courseId: exam.courseId,
+          fileUrl,
+          issuedAt: new Date(),
+        });
+      }
+    }
+    res.status(201).json({ score, total: exam.questions.length, certificate });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
