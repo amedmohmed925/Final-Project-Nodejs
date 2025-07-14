@@ -252,7 +252,7 @@ let getUserActivities = async (req, res) => {
 
 let editUserInfo = async (req, res) => {
   let { id } = req.params;
-  let { firstName, lastName, email, dob, password, newPassword } = req.body;
+  let { firstName, lastName, email, dob, password, newPassword, socialMedia, bio } = req.body;
 
   try {
     let user = await User.findById(id);
@@ -274,6 +274,14 @@ let editUserInfo = async (req, res) => {
     if (lastName) user.lastName = lastName;
     if (email) user.email = email;
     if (dob) user.dob = dob;
+    if (bio) user.bio = bio;
+
+    if (socialMedia) {
+      user.socialMedia = {
+        ...user.socialMedia,
+        ...socialMedia, // Update only provided social media fields
+      };
+    }
 
     if (newPassword) {
       const salt = await bcrypt.genSalt(10);
