@@ -3,6 +3,7 @@ const User = require("../models/User");const Forum = require("../models/Forum");
 const Notification = require("../models/Notification");
 const Activity = require("../models/activityStatsModel"); 
 const Course = require('../models/Course');
+const Feedback = require('../models/Feedback'); // Import Feedback model
 const bcrypt = require("bcrypt");
 
 
@@ -394,7 +395,7 @@ let getPurchasedCourses = async (req, res) => {
 
 let getVerifiedTeachers = async (req, res) => {
   try {
-    let teachers = await User.find({ role: "teacher", isVerified: true }).select("firstName lastName profileImage bio");
+    let teachers = await User.find({ role: "teacher", isVerified: true }).select("firstName lastName profileImage bio major");
 
     if (!teachers || teachers.length === 0) {
       return res
@@ -406,6 +407,7 @@ let getVerifiedTeachers = async (req, res) => {
     teachers = teachers.map(teacher => ({
       ...teacher._doc,
       bio: teacher.bio || "Not provided",
+      major: teacher.major || "Not specified",
     }));
 
     res.status(200).json({
@@ -453,10 +455,25 @@ let getTeacherDetails = async (req, res) => {
     // Fetch courses created by the teacher, excluding video URLs, and filter by isApproved
     const courses = await Course.find({ teacherId: id, isApproved: true }).select("-sections.lessons.videoUrl");
 
+    // Calculate averageRating for each course
+    const coursesWithRatings = await Promise.all(
+      courses.map(async (course) => {
+        const feedbacks = await Feedback.find({ courseId: course._id });
+        const averageRating = feedbacks.length > 0
+          ? feedbacks.reduce((sum, fb) => sum + fb.rating, 0) / feedbacks.length
+          : 0;
+
+        return {
+          ...course._doc,
+          averageRating: Number(averageRating.toFixed(1)),
+        };
+      })
+    );
+
     res.status(200).json({
       success: true,
       teacher,
-      courses,
+      courses: coursesWithRatings,
     });
   } catch (error) {
     res.status(500).json({
