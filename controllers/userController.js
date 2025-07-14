@@ -252,7 +252,7 @@ let getUserActivities = async (req, res) => {
 
 let editUserInfo = async (req, res) => {
   let { id } = req.params;
-  let { firstName, lastName, email, dob, password, newPassword, socialMedia, bio } = req.body;
+  let { firstName, lastName, email, dob, password, newPassword, socialMedia, bio, certificates, graduationYear, university, major } = req.body;
 
   try {
     let user = await User.findById(id);
@@ -274,7 +274,16 @@ let editUserInfo = async (req, res) => {
     if (lastName) user.lastName = lastName;
     if (email) user.email = email;
     if (dob) user.dob = dob;
-    if (bio) user.bio = bio;
+
+    if (user.role === "teacher") {
+      if (certificates) user.certificates = certificates;
+      if (graduationYear) user.graduationYear = graduationYear;
+      if (university) user.university = university;
+      if (major) user.major = major;
+      if (bio) user.bio = bio;
+    } else if (bio) {
+      user.bio = bio;
+    }
 
     if (socialMedia) {
       user.socialMedia = {
@@ -383,6 +392,81 @@ let getPurchasedCourses = async (req, res) => {
   }
 };
 
+let getVerifiedTeachers = async (req, res) => {
+  try {
+    let teachers = await User.find({ role: "teacher", isVerified: true }).select("firstName lastName profileImage bio");
+
+    if (!teachers || teachers.length === 0) {
+      return res
+        .status(404)
+        .json({ success: false, message: "No verified teachers found" });
+    }
+
+    // Ensure bio is always included, even if null
+    teachers = teachers.map(teacher => ({
+      ...teacher._doc,
+      bio: teacher.bio || "Not provided",
+    }));
+
+    res.status(200).json({
+      success: true,
+      teachers: teachers,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching verified teachers",
+      error,
+    });
+  }
+};
+
+let getTeacherDetails = async (req, res) => {
+  let { id } = req.params;
+
+  try {
+    let teacher = await User.findById(id).select("-email -username -password -googleId -purchasedCourses");
+
+    if (!teacher || teacher.role !== "teacher") {
+      return res.status(404).json({
+        success: false,
+        message: "Teacher not found",
+      });
+    }
+
+    // Ensure all fields are included, even if empty
+    teacher = {
+      ...teacher._doc,
+      bio: teacher.bio || "",
+      certificates: teacher.certificates || [],
+      graduationYear: teacher.graduationYear || null,
+      university: teacher.university || "",
+      major: teacher.major || "",
+      socialMedia: teacher.socialMedia || {
+        facebook: "",
+        twitter: "",
+        linkedin: "",
+        instagram: "",
+      },
+    };
+
+    // Fetch courses created by the teacher, excluding video URLs, and filter by isApproved
+    const courses = await Course.find({ teacherId: id, isApproved: true }).select("-sections.lessons.videoUrl");
+
+    res.status(200).json({
+      success: true,
+      teacher,
+      courses,
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Error fetching teacher details",
+      error,
+    });
+  }
+};
+
 module.exports = {
   getAllUsers,
   getUserById,
@@ -397,5 +481,7 @@ module.exports = {
   updateProfileImage,
   getStudentsCount,
   getTeachersCount,
-  getPurchasedCourses
+  getPurchasedCourses,
+  getVerifiedTeachers,
+  getTeacherDetails
 };

@@ -13,7 +13,9 @@ const {
     updateProfileImage,
     getStudentsCount,
     getTeachersCount,
-    getPurchasedCourses
+    getPurchasedCourses,
+    getVerifiedTeachers,
+    getTeacherDetails
 } = require("../controllers/userController");
 
 const { authenticateToken , isAdmin} = require("../middleware/authMiddleware");
@@ -202,5 +204,34 @@ router.delete("/:id", authenticateToken, deleteUser);
  *     tags: [Users]
  */
 router.get('/:id/purchased-courses', authenticateToken, getPurchasedCourses);
+
+/**
+ * @swagger
+ * /teachers/verified:
+ *   get:
+ *     summary: Get all verified teachers
+ *     tags: [Users]
+ */
+router.get("/teachers/verified", getVerifiedTeachers);
+
+/**
+ * @swagger
+ * /teacher/{id}/details:
+ *   get:
+ *     summary: Get teacher details excluding email and username
+ *     tags: [Users]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *     responses:
+ *       200:
+ *         description: Returns teacher details
+ *       404:
+ *         description: Teacher not found
+ */
+router.get("/teacher/:id/details", getTeacherDetails);
 
 module.exports = router;
