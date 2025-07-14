@@ -527,6 +527,9 @@ router.get('/:id/groups', groupController.getAllGroups);
  */
 router.get('/:id/resources', resourceController.getResources);
 
-
+// Admin routes
+router.get('/admin/pending-courses', courseController.getPendingCourses); // Endpoint to fetch pending courses
+router.get('/admin/pending-course/:courseId', courseController.getPendingCourseById); // Endpoint to fetch a single pending course by ID
+router.put('/admin/approve-course/:courseId', courseController.approveCourse); // Endpoint to approve a course
 
 module.exports = router;

@@ -26,5 +26,7 @@ const { authenticateToken } = require('../../middleware/authMiddleware');
 
 // Dashboard statistics
 router.get('/dashboard',authenticateToken, isAdmin, statsAdminController.getDashboardStats);
+router.get('/pending-courses-count', authenticateToken, isAdmin, statsAdminController.getPendingCoursesCount); // Endpoint to fetch count of pending courses
+router.get('/pending-course/:courseId', authenticateToken, isAdmin, statsAdminController.getPendingCourseById); // Endpoint to fetch a single pending course by ID
 
 module.exports = router;

@@ -33,6 +33,7 @@ const courseSchema = new mongoose.Schema({
   targetAudience: [{ type: String }],
   views: { type: Number, default: 0 }, // حقل جديد لعدد المشاهدات
   students: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  isApproved: { type: Boolean, default: false }, // حالة الموافقة من الأدمن
 }, { timestamps: true });
 
 module.exports = mongoose.model('Course', courseSchema);

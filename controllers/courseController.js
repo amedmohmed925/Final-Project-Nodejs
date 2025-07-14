@@ -213,10 +213,9 @@ exports.getCoursesCount = async (req, res) => {
 // 1. Endpoint to get course preview data with average rating
 exports.getCoursePreview = async (req, res) => {
   try {
-    const courses = await Course.find()
+    const courses = await Course.find({ isApproved: true })
       .select('title description featuredImage price level category sections tags')
-     
-      .populate('category', 'name')
+      .populate('category', 'name');
 
     const coursesWithRatings = await Promise.all(
       courses.map(async (course) => {
@@ -250,7 +249,7 @@ exports.getCoursePreview = async (req, res) => {
 
     res.status(200).json(coursesWithRatings);
   } catch (err) {
-    res.status(500).json({ message: 'حدث خطأ أثناء جلب بيانات المعاينة: ' + err.message });
+    res.status(500).json({ message: 'Error fetching course previews: ' + err.message });
   }
 };
 
@@ -517,7 +516,7 @@ exports.updateCourse = async (req, res) => {
         const lessonData = {
           ...lesson,
           videoUrl: lesson.videoUrl || (lessonVideos[videoIndex] ? `pending:${lessonVideos[videoIndex].filename}` : ''),
-          thumbnailUrl: lesson.thumbnailUrl || (lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIndex].filename}` : ''),
+          thumbnailUrl: lesson.thumbnailUrl || (lessonThumbnails[thumbIndex] ? `pending:${lessonThumbnails[thumbIdx].filename}` : ''),
           duration: lesson.duration || 0, // سيتم تحديثه من Cloudinary إذا تم رفع فيديو جديد
         };
         if (lessonVideos[videoIndex]) videoIndex++;
@@ -640,5 +639,47 @@ exports.deleteCourse = async (req, res) => {
     res.status(200).json({ message: 'Course deleted successfully' });
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+exports.getPendingCourses = async (req, res) => {
+  try {
+    const pendingCourses = await Course.find({ isApproved: false });
+    res.status(200).json(pendingCourses);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching pending courses: ' + err.message });
+  }
+};
+
+exports.approveCourse = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findById(courseId);
+
+    if (!course) {
+      return res.status(404).json({ message: 'Course not found' });
+    }
+
+    course.isApproved = true;
+    await course.save();
+
+    res.status(200).json({ message: 'Course approved successfully', course });
+  } catch (err) {
+    res.status(500).json({ message: 'Error approving course: ' + err.message });
+  }
+};
+
+exports.getPendingCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findOne({ _id: courseId, isApproved: false });
+
+    if (!course) {
+      return res.status(404).json({ message: 'Pending course not found' });
+    }
+
+    res.status(200).json(course);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching pending course: ' + err.message });
   }
 };

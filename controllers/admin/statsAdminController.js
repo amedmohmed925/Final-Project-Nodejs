@@ -54,3 +54,27 @@ exports.getDashboardStats = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getPendingCoursesCount = async (req, res) => {
+  try {
+    const pendingCoursesCount = await Course.countDocuments({ isApproved: false });
+    res.status(200).json({ pendingCourses: pendingCoursesCount });
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching pending courses count: ' + err.message });
+  }
+};
+
+exports.getPendingCourseById = async (req, res) => {
+  try {
+    const { courseId } = req.params;
+    const course = await Course.findOne({ _id: courseId, isApproved: false });
+
+    if (!course) {
+      return res.status(404).json({ message: 'Pending course not found' });
+    }
+
+    res.status(200).json(course);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching pending course: ' + err.message });
+  }
+};
