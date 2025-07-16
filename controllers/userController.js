@@ -451,8 +451,7 @@ let getTeacherDetails = async (req, res) => {
         instagram: "",
       },
     };
-
-    // Fetch courses created by the teacher, excluding video URLs, and filter by isApproved
+  // Fetch courses created by the teacher, excluding video URLs, and filter by isApproved
     const courses = await Course.find({ teacherId: id, isApproved: true }).select("-sections.lessons.videoUrl");
 
     // Calculate averageRating for each course

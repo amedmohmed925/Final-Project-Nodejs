@@ -13,9 +13,17 @@ const router = express.Router();
 
 /**
  * @swagger
- * /register:
+ * /v1/auth/register:
  *   post:
  *     summary: Register a new user
+ *     description: |
+ *       ### For Students
+ *       - **Required:** username, password, confirm_password, email, firstName, lastName, dob, role
+ *       - **Optional:** bio, socialMedia (facebook, twitter, linkedin, instagram)
+ *       
+ *       ### For Teachers
+ *       - **Required:** username, password, confirm_password, email, firstName, lastName, dob, role, certificates, graduationYear, university, major
+ *       - **Optional:** bio, socialMedia (facebook, twitter, linkedin, instagram)
  *     tags: [Authentication]
  *     requestBody:
  *       required: true
@@ -28,6 +36,21 @@ const router = express.Router();
  *               - password
  *               - confirm_password
  *               - email
+ *               - firstName
+ *               - lastName
+ *               - dob
+ *               - role
+ *             allOf:
+ *               - if:
+ *                   properties:
+ *                     role:
+ *                       const: teacher
+ *                 then:
+ *                   required:
+ *                     - certificates
+ *                     - graduationYear
+ *                     - university
+ *                     - major
  *             properties:
  *               username:
  *                 type: string
@@ -46,11 +69,35 @@ const router = express.Router();
  *                 format: date
  *               role:
  *                 type: string
+ *                 enum: [teacher, student, admin, advertiser]
+ *               certificates:
+ *                 type: array
+ *                 items:
+ *                   type: string
+ *               graduationYear:
+ *                 type: number
+ *               university:
+ *                 type: string
+ *               major:
+ *                 type: string
+ *               bio:
+ *                 type: string
+ *               socialMedia:
+ *                 type: object
+ *                 properties:
+ *                   facebook:
+ *                     type: string
+ *                   twitter:
+ *                     type: string
+ *                   linkedin:
+ *                     type: string
+ *                   instagram:
+ *                     type: string
  *     responses:
  *       201:
- *         description: User registered successfully
+ *         description: User registered successfully. Please check your email for OTP.
  *       400:
- *         description: User already exists or passwords do not match
+ *         description: User already exists or passwords do not match or missing teacher fields
  */
 router.post("/register", register);
 
@@ -78,7 +125,7 @@ router.post("/register", register);
  *       200:
  *         description: Login successful
  *       401:
- *         description: Invalid credentials
+ *         description: Invalid credentials or account not verified
  */
 router.post("/login", login);
 
@@ -105,9 +152,9 @@ router.post("/login", login);
  *                 type: string
  *     responses:
  *       200:
- *         description: Account verified successfully
+ *         description: Account verified successfully. You can now login.
  *       400:
- *         description: Invalid OTP or missing fields
+ *         description: Invalid OTP or missing fields or OTP expired
  *       404:
  *         description: User not found
  */
@@ -228,7 +275,7 @@ router.get("/me", authenticateToken, getCurrentUser);
  *                 type: string
  *     responses:
  *       200:
- *         description: OTP sent to email
+ *         description: Password reset link sent to your email.
  *       404:
  *         description: User not found
  */
@@ -248,12 +295,12 @@ router.post("/forget-password", forgetPassword);
  *             type: object
  *             required: 
  *               - email
- *               - otp
+ *               - token
  *               - newPassword
  *             properties:
  *               email:
  *                 type: string
- *               otp:
+ *               token:
  *                 type: string
  *               newPassword:
  *                 type: string
@@ -261,7 +308,7 @@ router.post("/forget-password", forgetPassword);
  *       200:
  *         description: Password reset successfully
  *       400:
- *         description: Invalid OTP
+ *         description: Invalid or expired token or weak password
  *       404:
  *         description: User not found
  */
