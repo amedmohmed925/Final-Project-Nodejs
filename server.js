@@ -56,12 +56,7 @@ const io = new Server(server, {
 app.use(express.json());
 app.use(cors());
 
-console.log('Env Check:', {
-  port: process.env.PORT,
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET ? '[hidden]' : undefined,
-});
+
 
 const dbUri = process.env.NODE_ENV === 'test' ? process.env.TEST_MONGODB_URI : process.env.MONGO_URI;
 connectDB(dbUri);

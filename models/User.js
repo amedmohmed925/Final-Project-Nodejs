@@ -43,7 +43,4 @@ const userSchema = new mongoose.Schema({
   purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
 }, { timestamps: true });
 
-userSchema.index({ username: 1 }, { unique: true });
-userSchema.index({ email: 1 }, { unique: true });
-
 module.exports = mongoose.model("User", userSchema);
