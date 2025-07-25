@@ -2,7 +2,7 @@
 const User = require('../../models/User');
 const Course = require('../../models/Course');
 const Complaint = require('../../models/Complaint');
-const Coupon = require('../../models/Coupon');
+const Coupon = require('../../models/coupon');
 const Payment = require('../../models/Payment');
 
 exports.getDashboardStats = async (req, res) => {
