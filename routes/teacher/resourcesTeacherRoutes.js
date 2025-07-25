@@ -4,7 +4,8 @@ const router = express.Router();
 const resourcesTeacherController = require('../../controllers/teacher/resourcesTeacherController');
 const { isTeacher } = require('../../middleware/roleMiddleware');
 const multer = require('multer');
-const upload = multer({ dest: 'uploads/' });
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 /**
  * @swagger

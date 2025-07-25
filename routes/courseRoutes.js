@@ -7,8 +7,9 @@ const groupController = require('../controllers/groupController');
 const resourceController = require('../controllers/resourceController');
 const { isTeacher } = require('../middleware/authMiddleware');
 const { authenticateToken } = require("../middleware/authMiddleware");
-const upload = require('../multerConfig');
-
+const multer = require('multer');
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
 
 
 
