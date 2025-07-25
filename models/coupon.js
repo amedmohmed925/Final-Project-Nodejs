@@ -10,4 +10,4 @@ const couponSchema = new mongoose.Schema({
   expiresAt: { type: Date, required: true }, // تاريخ الانتهاء (أسبوع من الإنشاء)
 });
 
-module.exports = mongoose.model("Coupon", couponSchema);
+module.exports = mongoose.models.Coupon || mongoose.model("Coupon", couponSchema);

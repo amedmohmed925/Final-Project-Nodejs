@@ -1,10 +1,9 @@
 // controllers/cartController.js
-const Coupon = require("../models/Coupon");
+const Coupon = require("../models/coupon");
 const Cart = require("../models/Cart");
 const CouponUsage = require("../models/CouponUsage"); // استيراد النموذج الجديد
 const Course = require("../models/Course");
 const mongoose = require("mongoose");
-
 
 
 const addCart = async (req, res) => {
