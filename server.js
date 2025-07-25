@@ -105,6 +105,10 @@ app.use('/api/v1/admin/payments', require('./routes/admin/paymentsAdminRoutes'))
 app.use('/api/v1/contact', require('./routes/contactRoutes'));
 swaggerDocs(app);
 
+app.get('/test', (req, res) => {
+  res.send('Test endpoint is working!');
+});
+
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error("Authentication error"));
