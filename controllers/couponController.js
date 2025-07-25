@@ -1,6 +1,6 @@
 // controllers/couponController.js
-const Coupon = require("../models/Coupon");
-const Cart = require("../models/Cart");
+const Coupon = require("../models/coupon");
+const Cart = require("../models/cart");
 const mongoose = require("mongoose");
 
 // إنشاء كوبون جديد
