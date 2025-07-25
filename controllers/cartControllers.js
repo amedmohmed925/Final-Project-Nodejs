@@ -1,6 +1,6 @@
 // controllers/cartController.js
 const Coupon = require("../models/coupon");
-const Cart = require("../models/Cart");
+const Cart = require("../models/cart");
 const CouponUsage = require("../models/CouponUsage"); // استيراد النموذج الجديد
 const Course = require("../models/Course");
 const mongoose = require("mongoose");
