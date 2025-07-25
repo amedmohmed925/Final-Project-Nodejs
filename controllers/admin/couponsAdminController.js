@@ -1,5 +1,5 @@
 // controllers/admin/couponsAdminController.js
-const Coupon = require('../../models/Coupon');
+const Coupon = require('../../models/coupon');
 const Joi = require('joi');
 
 const couponSchema = Joi.object({
