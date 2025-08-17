@@ -1,6 +1,7 @@
 // controllers/admin/complaintsAdminController.js
 const Complaint = require('../../models/Complaint');
 const Joi = require('joi');
+const { getRedisClient } = require('../../config/redisClient');
 
 const statusSchema = Joi.object({
   status: Joi.string().valid('open', 'in_progress', 'closed').required()
@@ -9,13 +10,35 @@ const statusSchema = Joi.object({
 exports.listComplaints = async (req, res) => {
   try {
     const { search, status } = req.query;
+    const cacheKey = `complaints:${search || 'all'}:${status || 'all'}`;
+
+    let cachedData = null;
+    try {
+      const client = await getRedisClient();
+      if (client) cachedData = await client.get(cacheKey);
+    } catch (e) {
+      // ignore redis failures
+    }
+    if (cachedData) {
+      return res.json(JSON.parse(cachedData));
+    }
+
     let filter = {};
     if (search) filter.$or = [
       { subject: { $regex: search, $options: 'i' } },
       { description: { $regex: search, $options: 'i' } }
     ];
     if (status) filter.status = status;
+
     const complaints = await Complaint.find(filter).sort({ createdAt: -1 });
+
+    try {
+      const client = await getRedisClient();
+      if (client) await client.set(cacheKey, JSON.stringify(complaints), { EX: 3600 });
+    } catch (e) {
+      // ignore redis failures
+    }
+
     res.json(complaints);
   } catch (err) {
     res.status(500).json({ error: err.message });

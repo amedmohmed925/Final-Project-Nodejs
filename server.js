@@ -39,9 +39,14 @@ const coursesStudentRoutes = require('./routes/student/coursesStudentRoutes');
 const favoritesStudentRoutes = require('./routes/student/favoritesStudentRoutes');
 const certificatesStudentRoutes = require('./routes/student/certificatesStudentRoutes');
 const progressStudentRoutes = require('./routes/student/progressStudentRoutes');
+const liveSessionsStudentRoutes = require('./routes/student/liveSessionsStudentRoutes');
 const complaintsRoutes = require('./routes/complaintsRoutes');
 const googleAuthRoutes = require('./routes/googleAuthRoutes');
 const examRoutes = require('./routes/examRoutes');
+const liveSessionRoutes = require('./routes/liveSessionRoutes');
+const { setIO } = require('./utils/socket');
+const LiveSession = require('./models/LiveSession');
+const Course = require('./models/Course');
 
 const app = express();
 const server = http.createServer(app);
@@ -94,10 +99,13 @@ app.use('/api/v1/student/favorites', favoritesStudentRoutes);
 app.use('/api/v1/student/certificates', certificatesStudentRoutes);
 app.use('/api/certificates', express.static(path.join(__dirname, 'public/certificates')));
 app.use('/api/v1/student/progress', progressStudentRoutes);
+app.use('/api/v1/student/live-sessions', liveSessionsStudentRoutes);
 app.use('/api/v1/complaints', complaintsRoutes);
 app.use('/api/v1/exams', examRoutes);
 app.use('/api/v1/admin/payments', require('./routes/admin/paymentsAdminRoutes'));
 app.use('/api/v1/contact', require('./routes/contactRoutes'));
+app.use('/api/v1/live-sessions', liveSessionRoutes);
+app.use('/api/v1/debug', require('./routes/debugRoutes'));
 swaggerDocs(app);
 
 app.get('/test', (req, res) => {
@@ -107,10 +115,11 @@ app.get('/test', (req, res) => {
 io.use(async (socket, next) => {
   const token = socket.handshake.auth.token;
   if (!token) return next(new Error("Authentication error"));
-  const user = await User.findById(socket.handshake.auth.userId).select("username profileImage");
+  const user = await User.findById(socket.handshake.auth.userId).select("username profileImage role");
   if (!user) return next(new Error("User not found"));
   socket.user = user;
   socket.userId = socket.handshake.auth.userId;
+  socket.userRole = user.role;
   next();
 });
 
@@ -119,6 +128,11 @@ io.on("connection", (socket) => {
   const chatbotRoom = `chatbot_${socket.userId}`;
   socket.join(chatbotRoom);
   socket.join("liveChat");
+
+  // join user personal room for notifications
+  if (socket.userId) {
+    socket.join(`user_${socket.userId}`);
+  }
 
   socket.on("joinRoom", async ({ roomId }) => {
     socket.join(roomId);
@@ -163,11 +177,91 @@ io.on("connection", (socket) => {
     io.to(chatbotRoom).emit("newMessage", { roomId: chatbotRoom, message: botMessage });
   });
 
+  // Simple WebRTC signaling for live sessions (room-based)
+  socket.on('live:join', async ({ sessionId }) => {
+    try {
+      if (!sessionId) return;
+      const session = await LiveSession.findById(sessionId).select('courseId teacherId status scheduledAt');
+      if (!session) return socket.emit('live:error', { message: 'Session not found' });
+      // Admins can join any session
+      if (socket.userRole === 'admin') {
+        socket.join(`live_${sessionId}`);
+        socket.to(`live_${sessionId}`).emit('live:peer-joined', { userId: socket.userId });
+        return;
+      }
+      const course = await Course.findById(session.courseId).select('teacherId students');
+      const isTeacher = String(course.teacherId) === String(socket.userId) || String(session.teacherId) === String(socket.userId);
+      
+      // Check if student via Course.students array
+      const isStudentViaStudentsArray = (course.students || []).some(id => String(id) === String(socket.userId));
+      
+      // Check if student via User.purchasedCourses
+      const currentUser = await User.findById(socket.userId).select('purchasedCourses');
+      const isStudentViaPurchasedCourses = (currentUser?.purchasedCourses || []).some(id => String(id) === String(session.courseId));
+      
+      const isStudent = isStudentViaStudentsArray || isStudentViaPurchasedCourses;
+      
+      if (!isTeacher && !isStudent) {
+        return socket.emit('live:error', { message: 'Not allowed' });
+      }
+      const room = `live_${sessionId}`;
+      socket.join(room);
+      socket.to(room).emit('live:peer-joined', { userId: socket.userId });
+    } catch (e) {
+      socket.emit('live:error', { message: 'Join failed' });
+    }
+  });
+  socket.on('live:leave', ({ sessionId }) => {
+    if (!sessionId) return;
+    const room = `live_${sessionId}`;
+    socket.leave(room);
+    socket.to(room).emit('live:peer-left', { userId: socket.userId });
+  });
+  socket.on('live:offer', ({ sessionId, sdp, to }) => {
+    if (!sessionId || !sdp) return;
+    socket.to(`live_${sessionId}`).emit('live:offer', { from: socket.userId, sdp, to });
+  });
+  socket.on('live:answer', ({ sessionId, sdp, to }) => {
+    if (!sessionId || !sdp) return;
+    socket.to(`live_${sessionId}`).emit('live:answer', { from: socket.userId, sdp, to });
+  });
+  socket.on('live:ice', ({ sessionId, candidate, to }) => {
+    if (!sessionId || !candidate) return;
+    socket.to(`live_${sessionId}`).emit('live:ice', { from: socket.userId, candidate, to });
+  });
+
+  // Screen sharing events
+  socket.on('live:screen-share-start', ({ sessionId }) => {
+    if (!sessionId) return;
+    socket.to(`live_${sessionId}`).emit('live:screen-share-started', { userId: socket.userId });
+  });
+  
+  socket.on('live:screen-share-stop', ({ sessionId }) => {
+    if (!sessionId) return;
+    socket.to(`live_${sessionId}`).emit('live:screen-share-stopped', { userId: socket.userId });
+  });
+
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
 });
 
-server.listen(process.env.PORT, () => console.log(`Server running on port ${process.env.PORT}`));
+setIO(io);
+
+// Start server with simple port fallback to avoid EADDRINUSE in dev
+let currentPort = Number(process.env.PORT) || 8080;
+function startServer(port) {
+  server.listen(port, () => console.log(`Server running on port ${port}`));
+}
+server.on('error', (err) => {
+  if (err && err.code === 'EADDRINUSE') {
+    console.warn(`Port ${currentPort} in use, trying ${currentPort + 1}...`);
+    currentPort += 1;
+    setTimeout(() => startServer(currentPort), 250);
+  } else {
+    console.error('Server error:', err);
+  }
+});
+startServer(currentPort);
 
 module.exports = app;

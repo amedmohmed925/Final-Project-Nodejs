@@ -439,7 +439,7 @@ exports.getCourseById = async (req, res) => {
 exports.getCoursesByTeacher = async (req, res) => {
   try {
     const teacherId = req.params.teacherId;
-    const courses = await Course.find({ teacherId });
+    const courses = await Course.find({ teacherId, isApproved: true });
     if (!courses.length) {
       return res.status(404).json({ message: 'No courses found for this teacher' });
     }

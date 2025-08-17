@@ -33,7 +33,7 @@ const userSchema = new mongoose.Schema({
     },
   },
   bio: { type: String },
-  googleId: { type: String, default: null },
+  googleId: { type: String, default: null, sparse: true },
   socialMedia: {
     facebook: { type: String },
     twitter: { type: String },
@@ -42,5 +42,8 @@ const userSchema = new mongoose.Schema({
   },
   purchasedCourses: [{ type: mongoose.Schema.Types.ObjectId, ref: 'Course' }],
 }, { timestamps: true });
+
+// Create sparse unique index for googleId (only indexes non-null values)
+userSchema.index({ googleId: 1 }, { unique: true, sparse: true });
 
 module.exports = mongoose.model("User", userSchema);
